@@ -52,3 +52,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 In Next.js you can create client and server components. Both can access data from the database. There are two different helper modules to read data. 
 Client: `@utils/client.js`
 Server: `@utils/server.js`
+
+## Shadcn UI
+[Shadcn](https://ui.shadcn.com/) |
+[Components](https://ui.shadcn.com/docs/components) |
+
+
+A library of pre-defined and styled components. By default the pre-defined component should be used. Only if the component does not fit the
+use-case, it should be extended / edited / adjusted. This ensures a coherent design throughout the application.
+
+To use a component it has to be added to the project first. 
+```
+npx shadcn@latest add button
+```
+
+For more information click [here](https://ui.shadcn.com/docs/installation/next).
+
+
