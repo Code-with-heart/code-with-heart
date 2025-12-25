@@ -1,22 +1,17 @@
-import { createClient } from "@/utils/supabase/server";
+import { FeedbackForm } from "@/components/feedback-form"
 
-export default async function Page() {
-  const supabase = await createClient();
-  const { data: todos, error } = await supabase.from("todos").select();
-
-  if (error) {
-    console.error("Error fetching todos:", error.message);
-    return <p>Fehler beim Laden der Todos.</p>;
-  }
-
+export default function Page() {
   return (
-    <>
-      <h1>Meine Todos</h1>
-      <ul>
-        {todos?.map((todo) => (
-          <li key={todo.id}>{todo.task}</li>
-        ))}
-      </ul>
-    </>
-  );
+    <main className="min-h-screen flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-2">Code with Heart</h1>
+          <p className="text-muted-foreground">
+            Share and receive constructive feedback within the HTWG community
+          </p>
+        </div>
+        <FeedbackForm />
+      </div>
+    </main>
+  )
 }
