@@ -141,6 +141,7 @@ export default function ProfilePage() {
       const newPublishedState = !currentPublishedState;
       const updateData = {
         is_published: newPublishedState,
+        status: newPublishedState ? "published" : "delivered",
       };
 
       if (newPublishedState) {
@@ -166,6 +167,7 @@ export default function ProfilePage() {
               ? {
                   ...fb,
                   is_published: newPublishedState,
+                  status: newPublishedState ? "published" : "delivered",
                   published_at: newPublishedState ? new Date().toISOString() : null,
                 }
               : fb

@@ -35,7 +35,7 @@ export default function HomePage() {
           recipient_id
         `)
         .eq("is_published", true)
-        .in("status", ["delivered", "published"])
+        .in("status", ["published"])
         .order("published_at", { ascending: false, nullsLast: true })
         .order("created_at", { ascending: false });
 
