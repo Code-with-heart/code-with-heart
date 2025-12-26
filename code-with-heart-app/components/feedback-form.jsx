@@ -84,10 +84,7 @@ export function FeedbackForm() {
     <div className="w-full max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Create Feedback</CardTitle>
-          <CardDescription>
-            Share constructive feedback with your peers and professors
-          </CardDescription>
+          <CardTitle>Share constructive feedback with your peers and professors</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
