@@ -144,7 +144,9 @@ function BottomNav() {
 export function AppHeader({ children }) {
   return (
     <SidebarProvider>
-      <AppSidebar className="hidden md:flex" />
+      <div className="hidden md:block">
+        <AppSidebar />
+      </div>
       <SidebarInset>
         <main className="flex flex-1 flex-col pb-16 md:pb-0">
           {children}
