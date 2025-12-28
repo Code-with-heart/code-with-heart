@@ -154,6 +154,7 @@ export default function ClientComponent() {
 3. **Path Aliases**: Use `@/` prefix for imports (e.g., `@/components/ui/button`)
 4. **Server Components**: Default to server components; only use client components when needed for interactivity
 5. **AI Integration**: All feedback must go through AI screening and optional reformulation before delivery
+6. **Code Cleanup**: Actively cleanup declined or changed code during sessions. When changes are rejected, deprecated, or no longer used, immediately remove the dead code to maintain a clean codebase. Do not leave commented-out code or unused implementations lingering in the project.
 
 ## GitHub Repository
 

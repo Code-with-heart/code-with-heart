@@ -275,6 +275,8 @@ export default function ProfilePage() {
         </div>
       )}
 
+      <h2 className="text-2xl font-semibold mb-4">My feedback</h2>
+
       {/* Filter Buttons */}
       <div className="mb-6 flex flex-wrap gap-2">
         <Button
