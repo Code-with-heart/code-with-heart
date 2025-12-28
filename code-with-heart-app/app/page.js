@@ -4,6 +4,7 @@ import * as React from "react";
 import { Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FeedbackForm } from "@/components/feedback-form";
 import { createClient } from "@/utils/supabase/client";
 
 const MOCK_SENDER_ID = '00000000-0000-0000-0000-000000000001';
@@ -171,80 +172,100 @@ export default function HomePage() {
   const filteredFeedback = getFilteredFeedback();
 
   return (
-    <div className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Code with Heart</h1>
+    <div className="flex flex-1 flex-col">
+      {/* Hero Section with Feedback Form */}
+      <div className="w-full border-b bg-muted/30">
+        <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="mb-6 text-center">
+            <h1 className="text-4xl font-bold mb-2">Code with Heart</h1>
+            <p className="text-muted-foreground text-lg">
+              Share constructive feedback with the HTWG community
+            </p>
+          </div>
+          <FeedbackForm />
+        </div>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-destructive/10 border border-destructive rounded-md">
-          <p className="text-sm text-destructive">{error}</p>
-        </div>
-      )}
-
-      {/* Faculty Filter */}
-      {!loading && faculties.length > 0 && (
+      {/* Published Feedback Section */}
+      <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-3">Filter by Faculty</h2>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={facultyFilter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFacultyFilter("all")}
-            >
-              All
-            </Button>
-            {currentUserFaculty && (
-              <Button
-                variant={facultyFilter === "my-faculty" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFacultyFilter("my-faculty")}
-              >
-                My Faculty ({currentUserFaculty.abbreviation})
-              </Button>
-            )}
-            {faculties.map((faculty) => (
-              <Button
-                key={faculty.id}
-                variant={facultyFilter === faculty.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFacultyFilter(faculty.id)}
-                style={facultyFilter === faculty.id && faculty.color ? { backgroundColor: faculty.color, borderColor: faculty.color } : {}}
-              >
-                {faculty.abbreviation}
-              </Button>
-            ))}
-          </div>
-          {filteredFeedback.length !== feedback.length && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Showing {filteredFeedback.length} of {feedback.length} feedback posts
-            </p>
-          )}
+          <h2 className="text-3xl font-bold mb-2">Published Feedback</h2>
+          <p className="text-muted-foreground">
+            See what the community is sharing
+          </p>
         </div>
-      )}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Loading feedback feed...</p>
-        </div>
-      ) : filteredFeedback.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                {facultyFilter === "all"
-                  ? "No published feedback yet. Be the first to share some feedback!"
-                  : "No feedback found for the selected faculty filter."
-                }
-              </p>
+        {error && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive rounded-md">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
+        {/* Faculty Filter */}
+        {!loading && faculties.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
+              Filter by Faculty
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={facultyFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFacultyFilter("all")}
+              >
+                All
+              </Button>
+              {currentUserFaculty && (
+                <Button
+                  variant={facultyFilter === "my-faculty" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFacultyFilter("my-faculty")}
+                >
+                  My Faculty ({currentUserFaculty.abbreviation})
+                </Button>
+              )}
+              {faculties.map((faculty) => (
+                <Button
+                  key={faculty.id}
+                  variant={facultyFilter === faculty.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFacultyFilter(faculty.id)}
+                  style={facultyFilter === faculty.id && faculty.color ? { backgroundColor: faculty.color, borderColor: faculty.color } : {}}
+                >
+                  {faculty.abbreviation}
+                </Button>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="flex flex-col items-center w-full">
-          <div className="w-full max-w-2xl space-y-6">
+            {filteredFeedback.length !== feedback.length && (
+              <p className="text-sm text-muted-foreground mt-3">
+                Showing {filteredFeedback.length} of {feedback.length} feedback posts
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Feedback Feed */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <p className="text-muted-foreground">Loading feedback feed...</p>
+          </div>
+        ) : filteredFeedback.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="pt-6">
+              <div className="text-center py-16">
+                <p className="text-muted-foreground text-lg">
+                  {facultyFilter === "all"
+                    ? "No published feedback yet. Be the first to share some feedback!"
+                    : "No feedback found for the selected faculty filter."
+                  }
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
             {filteredFeedback.map((item) => (
-              <Card key={item.id} className="w-full">
+              <Card key={item.id} className="transition-shadow hover:shadow-md">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
@@ -280,8 +301,8 @@ export default function HomePage() {
               </Card>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

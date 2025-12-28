@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -82,13 +82,9 @@ export function FeedbackForm() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Share constructive feedback with your peers and professors</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+    <Card className="w-full shadow-lg">
+      <CardContent className="pt-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="recipient">Recipient</Label>
               <UserSelector
@@ -140,6 +136,5 @@ export function FeedbackForm() {
           )}
         </CardContent>
       </Card>
-    </div>
   )
 }
