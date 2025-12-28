@@ -40,7 +40,18 @@ export function UserSelector({ value, onValueChange, disabled }) {
       // Fetch users from user table
       const { data, error } = await supabase
         .from("user")
-        .select("id, full_name, email, user_type")
+        .select(`
+          id,
+          full_name,
+          email,
+          user_type,
+          faculty:faculty_id (
+            id,
+            name,
+            abbreviation,
+            color
+          )
+        `)
         .order("full_name", { ascending: true })
 
       if (error) {
@@ -157,6 +168,7 @@ export function UserSelector({ value, onValueChange, disabled }) {
                 <span className="text-xs text-muted-foreground">
                   {user.email}
                   {user.user_type && ` • ${user.user_type}`}
+                  {user.faculty?.abbreviation && ` • ${user.faculty.abbreviation}`}
                 </span>
               </div>
             </button>

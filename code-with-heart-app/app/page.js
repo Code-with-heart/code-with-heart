@@ -1,18 +1,65 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, User } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
+
+const MOCK_SENDER_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function HomePage() {
   const [feedback, setFeedback] = React.useState([]);
+  const [faculties, setFaculties] = React.useState([]);
+  const [facultyFilter, setFacultyFilter] = React.useState("all");
+  const [currentUserFaculty, setCurrentUserFaculty] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
   React.useEffect(() => {
+    fetchFaculties();
+    fetchCurrentUserFaculty();
     fetchPublishedFeedback();
   }, []);
+
+  const fetchFaculties = async () => {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("faculty")
+        .select("id, name, abbreviation, color")
+        .order("name");
+
+      if (!error) {
+        setFaculties(data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching faculties:", err);
+    }
+  };
+
+  const fetchCurrentUserFaculty = async () => {
+    try {
+      const supabase = createClient();
+      const { data: userData, error: userError } = await supabase
+        .from("user")
+        .select(`
+          faculty:faculty_id (
+            id,
+            name,
+            abbreviation
+          )
+        `)
+        .eq("id", MOCK_SENDER_ID)
+        .single();
+
+      if (!userError && userData) {
+        setCurrentUserFaculty(userData.faculty);
+      }
+    } catch (err) {
+      console.error("Error fetching current user faculty:", err);
+    }
+  };
 
   const fetchPublishedFeedback = async () => {
     try {
@@ -55,7 +102,17 @@ export default function HomePage() {
       if (allUserIds.size > 0) {
         const { data: usersData, error: usersError } = await supabase
           .from("user")
-          .select("id, full_name, email")
+          .select(`
+            id,
+            full_name,
+            email,
+            faculty:faculty_id (
+              id,
+              name,
+              abbreviation,
+              color
+            )
+          `)
           .in("id", Array.from(allUserIds));
 
         if (usersError) {
@@ -93,6 +150,26 @@ export default function HomePage() {
     });
   };
 
+  const getFilteredFeedback = () => {
+    if (facultyFilter === "all") return feedback;
+
+    if (facultyFilter === "my-faculty") {
+      if (!currentUserFaculty?.id) return feedback;
+      return feedback.filter(fb =>
+        fb.sender?.faculty?.id === currentUserFaculty.id ||
+        fb.recipient?.faculty?.id === currentUserFaculty.id
+      );
+    }
+
+    // Specific faculty (facultyFilter is faculty ID)
+    return feedback.filter(fb =>
+      fb.sender?.faculty?.id === facultyFilter ||
+      fb.recipient?.faculty?.id === facultyFilter
+    );
+  };
+
+  const filteredFeedback = getFilteredFeedback();
+
   return (
     <div className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
@@ -105,16 +182,60 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Faculty Filter */}
+      {!loading && faculties.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Filter by Faculty</h2>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={facultyFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFacultyFilter("all")}
+            >
+              All
+            </Button>
+            {currentUserFaculty && (
+              <Button
+                variant={facultyFilter === "my-faculty" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFacultyFilter("my-faculty")}
+              >
+                My Faculty ({currentUserFaculty.abbreviation})
+              </Button>
+            )}
+            {faculties.map((faculty) => (
+              <Button
+                key={faculty.id}
+                variant={facultyFilter === faculty.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFacultyFilter(faculty.id)}
+                style={facultyFilter === faculty.id && faculty.color ? { backgroundColor: faculty.color, borderColor: faculty.color } : {}}
+              >
+                {faculty.abbreviation}
+              </Button>
+            ))}
+          </div>
+          {filteredFeedback.length !== feedback.length && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Showing {filteredFeedback.length} of {feedback.length} feedback posts
+            </p>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Loading feedback feed...</p>
         </div>
-      ) : feedback.length === 0 ? (
+      ) : filteredFeedback.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-12">
               <p className="text-muted-foreground">
-                No published feedback yet. Be the first to share some feedback!
+                {facultyFilter === "all"
+                  ? "No published feedback yet. Be the first to share some feedback!"
+                  : "No feedback found for the selected faculty filter."
+                }
               </p>
             </div>
           </CardContent>
@@ -122,7 +243,7 @@ export default function HomePage() {
       ) : (
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-2xl space-y-6">
-            {feedback.map((item) => (
+            {filteredFeedback.map((item) => (
               <Card key={item.id} className="w-full">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">

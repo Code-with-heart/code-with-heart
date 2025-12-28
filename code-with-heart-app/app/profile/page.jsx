@@ -93,9 +93,19 @@ export default function ProfilePage() {
       let usersMap = new Map();
 
       if (allUserIds.length > 0) {
-        const { data: usersData, error: usersError } = await supabase
+        const { data: usersData, error: usersError} = await supabase
           .from("user")
-          .select("id, full_name, email")
+          .select(`
+            id,
+            full_name,
+            email,
+            faculty:faculty_id (
+              id,
+              name,
+              abbreviation,
+              color
+            )
+          `)
           .in("id", allUserIds);
 
         if (usersError) {

@@ -148,13 +148,59 @@ INSERT INTO auth.identities (
   )
 ON CONFLICT (provider_id, provider) DO NOTHING;
 
--- Now create the user records
-INSERT INTO "user" (id, full_name, email, user_type) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'Max Mustermann', 'max.mustermann@htwg-konstanz.de', 'Student'),
-  ('00000000-0000-0000-0000-000000000002', 'Anna Schmidt', 'anna.schmidt@htwg-konstanz.de', 'Student'),
-  ('00000000-0000-0000-0000-000000000003', 'Prof. Dr. Hans Meyer', 'hans.meyer@htwg-konstanz.de', 'Professor'),
-  ('00000000-0000-0000-0000-000000000004', 'Sarah Weber', 'sarah.weber@htwg-konstanz.de', 'HTWG Employee'),
-  ('00000000-0000-0000-0000-000000000005', 'Dr. Thomas Bauer', 'thomas.bauer@external.de', 'Lecturer')
+-- Create faculties
+INSERT INTO faculty (id, name, abbreviation, description, color) VALUES
+  (
+    '10000000-0000-0000-0000-000000000001',
+    'Architektur und Gestaltung',
+    'AuG',
+    'Fakultät für Architektur und Gestaltung',
+    '#FF6B6B'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000002',
+    'Bauingenieurwesen',
+    'BAU',
+    'Fakultät für Bauingenieurwesen',
+    '#4ECDC4'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000003',
+    'Elektrotechnik und Informationstechnik',
+    'EI',
+    'Fakultät für Elektrotechnik und Informationstechnik',
+    '#FFE66D'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000004',
+    'Informatik',
+    'INF',
+    'Fakultät für Informatik',
+    '#95E1D3'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000005',
+    'Maschinenbau',
+    'MB',
+    'Fakultät für Maschinenbau',
+    '#F38181'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000006',
+    'Wirtschafts-, Kultur- und Rechtswissenschaften',
+    'WKR',
+    'Fakultät für Wirtschafts-, Kultur- und Rechtswissenschaften',
+    '#AA96DA'
+  )
+ON CONFLICT (id) DO NOTHING;
+
+-- Now create the user records with faculty assignments
+INSERT INTO "user" (id, full_name, email, user_type, faculty_id) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'Max Mustermann', 'max.mustermann@htwg-konstanz.de', 'Student', '10000000-0000-0000-0000-000000000004'), -- Informatik
+  ('00000000-0000-0000-0000-000000000002', 'Anna Schmidt', 'anna.schmidt@htwg-konstanz.de', 'Student', '10000000-0000-0000-0000-000000000004'), -- Informatik
+  ('00000000-0000-0000-0000-000000000003', 'Prof. Dr. Hans Meyer', 'hans.meyer@htwg-konstanz.de', 'Professor', '10000000-0000-0000-0000-000000000002'), -- Bauingenieurwesen
+  ('00000000-0000-0000-0000-000000000004', 'Sarah Weber', 'sarah.weber@htwg-konstanz.de', 'HTWG Employee', '10000000-0000-0000-0000-000000000006'), -- WKR
+  ('00000000-0000-0000-0000-000000000005', 'Dr. Thomas Bauer', 'thomas.bauer@external.de', 'Lecturer', NULL) -- No faculty (external)
 ON CONFLICT (id) DO NOTHING;
 
 -- Create feedback data for testing
