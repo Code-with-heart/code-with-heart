@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,7 @@ export function FeedbackForm() {
       }
 
       // Insert feedback into database
+      // Feedback is immediately sent for AI review (no draft state)
       const { data, error: insertError } = await supabase
         .from("feedback")
         .insert([
@@ -50,7 +51,7 @@ export function FeedbackForm() {
             sender_id: MOCK_SENDER_ID,
             recipient_id: recipient,
             original_text: feedbackText.trim(),
-            status: 'draft'
+            status: 'pending_review'
           }
         ])
         .select()
@@ -109,7 +110,7 @@ export function FeedbackForm() {
                 className="min-h-32"
               />
               <p className="text-xs text-muted-foreground">
-                Your feedback will be reviewed by AI before being sent to ensure constructive communication.
+                Your feedback will be reviewed by AI and delivered to the recipient.
               </p>
             </div>
 

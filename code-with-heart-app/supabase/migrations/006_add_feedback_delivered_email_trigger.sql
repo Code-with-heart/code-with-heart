@@ -87,6 +87,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create trigger to set delivered_at timestamp (BEFORE UPDATE)
+DROP TRIGGER IF EXISTS feedback_set_delivered_at ON feedback;
 CREATE TRIGGER feedback_set_delivered_at
   BEFORE UPDATE OF status ON feedback
   FOR EACH ROW
@@ -94,6 +95,7 @@ CREATE TRIGGER feedback_set_delivered_at
   EXECUTE FUNCTION update_delivered_at();
 
 -- Create trigger to call the email notification function (AFTER UPDATE)
+DROP TRIGGER IF EXISTS feedback_delivered_notification ON feedback;
 CREATE TRIGGER feedback_delivered_notification
   AFTER UPDATE OF status ON feedback
   FOR EACH ROW
@@ -101,6 +103,7 @@ CREATE TRIGGER feedback_delivered_notification
   EXECUTE FUNCTION notify_feedback_delivered();
 
 -- Also handle the case when feedback is inserted with status 'delivered'
+DROP TRIGGER IF EXISTS feedback_delivered_notification_insert ON feedback;
 CREATE TRIGGER feedback_delivered_notification_insert
   AFTER INSERT ON feedback
   FOR EACH ROW

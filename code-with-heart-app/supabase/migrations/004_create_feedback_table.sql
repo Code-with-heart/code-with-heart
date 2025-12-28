@@ -1,17 +1,21 @@
 -- Create enum for feedback status
-CREATE TYPE feedback_status AS ENUM (
-  'draft',              -- Initial state after creation
-  'pending_review',     -- Awaiting AI review
-  'ai_flagged',         -- AI detected inappropriate content
-  'ai_modified',        -- AI suggested modifications
-  'pending_approval',   -- User needs to approve AI changes
-  'approved',           -- User approved, ready to send
-  'delivered',          -- Delivered to recipient
-  'published'           -- Recipient made it public
-);
+DO $$ BEGIN
+  CREATE TYPE feedback_status AS ENUM (
+    'draft',              -- Initial state after creation
+    'pending_review',     -- Awaiting AI review
+    'ai_flagged',         -- AI detected inappropriate content
+    'ai_modified',        -- AI suggested modifications
+    'pending_approval',   -- User needs to approve AI changes
+    'approved',           -- User approved, ready to send
+    'delivered',          -- Delivered to recipient
+    'published'           -- Recipient made it public
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Create feedback table
-CREATE TABLE feedback (
+CREATE TABLE IF NOT EXISTS feedback (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   recipient_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
@@ -30,13 +34,14 @@ CREATE TABLE feedback (
 );
 
 -- Create indexes for efficient querying
-CREATE INDEX idx_feedback_sender ON feedback(sender_id);
-CREATE INDEX idx_feedback_recipient ON feedback(recipient_id);
-CREATE INDEX idx_feedback_status ON feedback(status);
-CREATE INDEX idx_feedback_created_at ON feedback(created_at DESC);
-CREATE INDEX idx_feedback_published ON feedback(is_published) WHERE is_published = true;
+CREATE INDEX IF NOT EXISTS idx_feedback_sender ON feedback(sender_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_recipient ON feedback(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
+CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_published ON feedback(is_published) WHERE is_published = true;
 
 -- Create trigger to update updated_at
+DROP TRIGGER IF EXISTS update_feedback_updated_at ON feedback;
 CREATE TRIGGER update_feedback_updated_at
   BEFORE UPDATE ON feedback
   FOR EACH ROW
@@ -48,6 +53,7 @@ ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
 -- RLS Policies
 
 -- Policy: Users can view feedback they sent
+DROP POLICY IF EXISTS "Users can view feedback they sent" ON feedback;
 CREATE POLICY "Users can view feedback they sent"
   ON feedback
   FOR SELECT
@@ -55,6 +61,7 @@ CREATE POLICY "Users can view feedback they sent"
   USING (sender_id = auth.uid());
 
 -- Policy: Users can view feedback they received
+DROP POLICY IF EXISTS "Users can view feedback they received" ON feedback;
 CREATE POLICY "Users can view feedback they received"
   ON feedback
   FOR SELECT
@@ -62,6 +69,7 @@ CREATE POLICY "Users can view feedback they received"
   USING (recipient_id = auth.uid());
 
 -- Policy: Anyone can view published feedback
+DROP POLICY IF EXISTS "Anyone can view published feedback" ON feedback;
 CREATE POLICY "Anyone can view published feedback"
   ON feedback
   FOR SELECT
@@ -69,6 +77,7 @@ CREATE POLICY "Anyone can view published feedback"
   USING (is_published = true);
 
 -- Policy: Users can insert their own feedback
+DROP POLICY IF EXISTS "Users can insert their own feedback" ON feedback;
 CREATE POLICY "Users can insert their own feedback"
   ON feedback
   FOR INSERT
@@ -76,6 +85,7 @@ CREATE POLICY "Users can insert their own feedback"
   WITH CHECK (sender_id = auth.uid());
 
 -- Policy: Users can update feedback they sent (before delivery)
+DROP POLICY IF EXISTS "Users can update their own feedback" ON feedback;
 CREATE POLICY "Users can update their own feedback"
   ON feedback
   FOR UPDATE
@@ -84,6 +94,7 @@ CREATE POLICY "Users can update their own feedback"
   WITH CHECK (sender_id = auth.uid());
 
 -- Policy: Recipients can update published status
+DROP POLICY IF EXISTS "Recipients can update published status" ON feedback;
 CREATE POLICY "Recipients can update published status"
   ON feedback
   FOR UPDATE
@@ -92,6 +103,7 @@ CREATE POLICY "Recipients can update published status"
   WITH CHECK (recipient_id = auth.uid());
 
 -- Policy: Only allow anonymous read of published feedback
+DROP POLICY IF EXISTS "Anonymous users can view published feedback" ON feedback;
 CREATE POLICY "Anonymous users can view published feedback"
   ON feedback
   FOR SELECT

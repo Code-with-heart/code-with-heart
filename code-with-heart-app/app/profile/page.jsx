@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Globe, Lock, Calendar, User, Trash2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Globe, Lock, Calendar, Trash2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +18,9 @@ import { cn } from "@/lib/utils";
 const MOCK_SENDER_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function ProfilePage() {
-  const [feedback, setFeedback] = React.useState([]);
+  const [receivedFeedback, setReceivedFeedback] = React.useState([]);
+  const [sentFeedback, setSentFeedback] = React.useState([]);
+  const [filter, setFilter] = React.useState("all"); // "all", "received", "sent"
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [updatingIds, setUpdatingIds] = React.useState(new Set());
@@ -37,7 +39,7 @@ export default function ProfilePage() {
       const supabase = createClient();
 
       // Fetch feedback where this user is the recipient and status is "delivered"
-      const { data: feedbackData, error: fetchError } = await supabase
+      const { data: receivedData, error: receivedError } = await supabase
         .from("feedback")
         .select(`
           id,
@@ -54,34 +56,67 @@ export default function ProfilePage() {
         .eq("status", "delivered")
         .order("created_at", { ascending: false });
 
-      if (fetchError) {
-        throw fetchError;
+      if (receivedError) {
+        throw receivedError;
       }
 
-      // Fetch sender information for each feedback
-      const senderIds = [...new Set((feedbackData || []).map(f => f.sender_id))];
+      // Fetch feedback where this user is the sender
+      const { data: sentData, error: sentError } = await supabase
+        .from("feedback")
+        .select(`
+          id,
+          original_text,
+          modified_text,
+          status,
+          is_published,
+          created_at,
+          updated_at,
+          published_at,
+          delivered_at,
+          recipient_id
+        `)
+        .eq("sender_id", MOCK_SENDER_ID)
+        .order("created_at", { ascending: false });
+
+      if (sentError) {
+        throw sentError;
+      }
+
+      // Fetch sender information for received feedback
+      const senderIds = [...new Set((receivedData || []).map(f => f.sender_id))];
+      // Fetch recipient information for sent feedback
+      const recipientIds = [...new Set((sentData || []).map(f => f.recipient_id))];
+      const allUserIds = [...new Set([...senderIds, ...recipientIds])];
+
       let usersMap = new Map();
-      
-      if (senderIds.length > 0) {
+
+      if (allUserIds.length > 0) {
         const { data: usersData, error: usersError } = await supabase
           .from("user")
           .select("id, full_name, email")
-          .in("id", senderIds);
+          .in("id", allUserIds);
 
         if (usersError) {
-          console.warn("Error fetching sender information:", usersError);
+          console.warn("Error fetching user information:", usersError);
         } else {
           usersMap = new Map((usersData || []).map(u => [u.id, u]));
         }
       }
 
-      // Combine feedback with sender data
-      const data = (feedbackData || []).map(fb => ({
+      // Combine received feedback with sender data
+      const received = (receivedData || []).map(fb => ({
         ...fb,
         sender: usersMap.get(fb.sender_id) || null,
       }));
 
-      setFeedback(data || []);
+      // Combine sent feedback with recipient data
+      const sent = (sentData || []).map(fb => ({
+        ...fb,
+        recipient: usersMap.get(fb.recipient_id) || null,
+      }));
+
+      setReceivedFeedback(received || []);
+      setSentFeedback(sent || []);
     } catch (err) {
       console.error("Error fetching feedback:", err);
       setError(`Failed to load feedback: ${err.message || "An unexpected error occurred. Please try again."}`);
@@ -114,8 +149,8 @@ export default function ProfilePage() {
         setDeleteDialogOpen(false);
         setFeedbackToDelete(null);
       } else {
-        // Remove from local state
-        setFeedback(prev => prev.filter(fb => fb.id !== feedbackToDelete.id));
+        // Remove from local state (only from received feedback)
+        setReceivedFeedback(prev => prev.filter(fb => fb.id !== feedbackToDelete.id));
         setDeleteDialogOpen(false);
         setFeedbackToDelete(null);
       }
@@ -160,8 +195,8 @@ export default function ProfilePage() {
         console.error("Error updating feedback:", updateError);
         setError(`Failed to update feedback: ${updateError.message}`);
       } else {
-        // Update local state
-        setFeedback(prev =>
+        // Update local state (only in received feedback)
+        setReceivedFeedback(prev =>
           prev.map(fb =>
             fb.id === feedbackId
               ? {
@@ -198,6 +233,23 @@ export default function ProfilePage() {
     });
   };
 
+  // Filter feedback based on current filter
+  const getFilteredFeedback = () => {
+    if (filter === "received") {
+      return receivedFeedback.map(fb => ({ ...fb, type: "received" }));
+    } else if (filter === "sent") {
+      return sentFeedback.map(fb => ({ ...fb, type: "sent" }));
+    } else {
+      // "all" - combine both
+      return [
+        ...receivedFeedback.map(fb => ({ ...fb, type: "received" })),
+        ...sentFeedback.map(fb => ({ ...fb, type: "sent" }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+  };
+
+  const filteredFeedback = getFilteredFeedback();
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
@@ -213,7 +265,7 @@ export default function ProfilePage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">My Profile</h1>
         <p className="text-muted-foreground">
-          View and manage feedback you've received
+          View and manage your feedback
         </p>
       </div>
 
@@ -223,19 +275,47 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {feedback.length === 0 ? (
+      {/* Filter Buttons */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button
+          variant={filter === "all" ? "default" : "outline"}
+          onClick={() => setFilter("all")}
+          className="min-w-[100px]"
+        >
+          All ({receivedFeedback.length + sentFeedback.length})
+        </Button>
+        <Button
+          variant={filter === "received" ? "default" : "outline"}
+          onClick={() => setFilter("received")}
+          className="min-w-[100px]"
+        >
+          Received ({receivedFeedback.length})
+        </Button>
+        <Button
+          variant={filter === "sent" ? "default" : "outline"}
+          onClick={() => setFilter("sent")}
+          className="min-w-[100px]"
+        >
+          Sent ({sentFeedback.length})
+        </Button>
+      </div>
+
+      {/* Feedback Grid */}
+      {filteredFeedback.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-12">
               <p className="text-muted-foreground">
-                You haven't received any feedback yet.
+                {filter === "received" && "You haven't received any feedback yet."}
+                {filter === "sent" && "You haven't sent any feedback yet."}
+                {filter === "all" && "No feedback to display."}
               </p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {feedback.map((item) => (
+          {filteredFeedback.map((item) => (
             <Card
               key={item.id}
               className={cn(
@@ -247,17 +327,28 @@ export default function ProfilePage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <CardTitle className="text-base mb-1">
-                      {item.sender?.full_name || "Unknown User"}
+                      {item.type === "received"
+                        ? item.sender?.full_name || "Unknown User"
+                        : `To: ${item.recipient?.full_name || "Unknown User"}`
+                      }
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">
-                      {item.sender?.email || "No email"}
+                      {item.type === "received"
+                        ? item.sender?.email || "No email"
+                        : item.recipient?.email || "No email"
+                      }
                     </p>
                   </div>
-                  {item.is_published && (
+                  {item.type === "received" && item.is_published && (
                     <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md">
                       <Globe className="h-3 w-3" />
                       <span className="text-xs font-medium">Published</span>
                     </div>
+                  )}
+                  {item.type === "sent" && (
+                    <span className="px-2 py-1 bg-muted text-muted-foreground rounded-md text-xs font-medium">
+                      {item.status}
+                    </span>
                   )}
                 </div>
               </CardHeader>
@@ -270,40 +361,56 @@ export default function ProfilePage() {
                     <Calendar className="h-3 w-3" />
                     <span>{formatDate(item.created_at)}</span>
                   </div>
-                  <span className="px-2 py-0.5 bg-muted rounded-md">
-                    {item.status}
-                  </span>
+                  {item.type === "sent" && item.delivered_at && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-muted-foreground">Delivered:</span>
+                      <span>{formatDate(item.delivered_at)}</span>
+                    </div>
+                  )}
+                  {item.type === "sent" && item.is_published && (
+                    <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded-md">
+                      <Globe className="h-3 w-3" />
+                      <span>Published by recipient</span>
+                    </div>
+                  )}
+                  {item.type === "received" && (
+                    <span className="px-2 py-0.5 bg-muted rounded-md">
+                      {item.status}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-end justify-between gap-2 mt-auto pt-4 border-t">
-                  <Button
-                    variant={item.is_published ? "outline" : "default"}
-                    size="sm"
-                    onClick={() => handleTogglePublish(item.id, item.is_published)}
-                    disabled={updatingIds.has(item.id) || deletingIds.has(item.id)}
-                  >
-                    {updatingIds.has(item.id) ? (
-                      "Updating..."
-                    ) : item.is_published ? (
-                      <>
-                        <Lock className="h-4 w-4 mr-2" />
-                        Unpublish
-                      </>
-                    ) : (
-                      <>
-                        <Globe className="h-4 w-4 mr-2" />
-                        Publish
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteClick(item)}
-                    disabled={updatingIds.has(item.id) || deletingIds.has(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {item.type === "received" && (
+                  <div className="flex items-end justify-between gap-2 mt-auto pt-4 border-t">
+                    <Button
+                      variant={item.is_published ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => handleTogglePublish(item.id, item.is_published)}
+                      disabled={updatingIds.has(item.id) || deletingIds.has(item.id)}
+                    >
+                      {updatingIds.has(item.id) ? (
+                        "Updating..."
+                      ) : item.is_published ? (
+                        <>
+                          <Lock className="h-4 w-4 mr-2" />
+                          Unpublish
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="h-4 w-4 mr-2" />
+                          Publish
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteClick(item)}
+                      disabled={updatingIds.has(item.id) || deletingIds.has(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
