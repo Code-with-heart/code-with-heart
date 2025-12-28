@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { UserSelector } from "@/components/user-selector"
 import { createClient } from "@/utils/supabase/client"
 
-export function FeedbackForm() {
+export function FeedbackForm({ onSubmitSuccess }) {
   const [recipient, setRecipient] = React.useState("")
   const [feedbackText, setFeedbackText] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -69,6 +69,11 @@ export function FeedbackForm() {
       setRecipient("")
       setFeedbackText("")
       setSuccess(true)
+
+      // Call the success callback if provided
+      if (onSubmitSuccess) {
+        onSubmitSuccess()
+      }
 
       // Hide success message after 5 seconds
       setTimeout(() => setSuccess(false), 5000)

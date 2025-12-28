@@ -21,6 +21,14 @@ export default function HomePage() {
     fetchFaculties();
     fetchCurrentUserFaculty();
     fetchPublishedFeedback();
+
+    // Poll for new feedback every 30 seconds
+    const pollInterval = setInterval(() => {
+      fetchPublishedFeedback();
+    }, 30000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(pollInterval);
   }, []);
 
   const fetchFaculties = async () => {
@@ -182,7 +190,7 @@ export default function HomePage() {
               Share constructive feedback with the HTWG community
             </p>
           </div>
-          <FeedbackForm />
+          <FeedbackForm onSubmitSuccess={fetchPublishedFeedback} />
         </div>
       </div>
 
