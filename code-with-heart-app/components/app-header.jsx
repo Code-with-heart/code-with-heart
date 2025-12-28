@@ -112,14 +112,44 @@ function AppSidebar() {
   );
 }
 
+function BottomNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
+      <div className="flex items-center justify-around h-16">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.url;
+          return (
+            <Link
+              key={item.url}
+              href={item.url}
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className={`h-5 w-5 ${isActive ? "fill-current" : ""}`} />
+              <span className="text-xs font-medium">{item.title}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 export function AppHeader({ children }) {
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar className="hidden md:flex" />
       <SidebarInset>
-        <main className="flex flex-1 flex-col">
+        <main className="flex flex-1 flex-col pb-16 md:pb-0">
           {children}
         </main>
+        <BottomNav />
       </SidebarInset>
     </SidebarProvider>
   );
