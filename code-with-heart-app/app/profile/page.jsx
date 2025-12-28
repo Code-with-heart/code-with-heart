@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Globe, Lock, Calendar, Trash2 } from "lucide-react";
+import { Globe, Lock, Calendar, Trash2, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ export default function ProfilePage() {
   const [receivedFeedback, setReceivedFeedback] = React.useState([]);
   const [sentFeedback, setSentFeedback] = React.useState([]);
   const [filter, setFilter] = React.useState("all"); // "all", "received", "sent"
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [updatingIds, setUpdatingIds] = React.useState(new Set());
@@ -233,19 +235,45 @@ export default function ProfilePage() {
     });
   };
 
-  // Filter feedback based on current filter
+  // Filter and search feedback
   const getFilteredFeedback = () => {
+    let feedbackList = [];
+
+    // First apply the category filter
     if (filter === "received") {
-      return receivedFeedback.map(fb => ({ ...fb, type: "received" }));
+      feedbackList = receivedFeedback.map(fb => ({ ...fb, type: "received" }));
     } else if (filter === "sent") {
-      return sentFeedback.map(fb => ({ ...fb, type: "sent" }));
+      feedbackList = sentFeedback.map(fb => ({ ...fb, type: "sent" }));
     } else {
       // "all" - combine both
-      return [
+      feedbackList = [
         ...receivedFeedback.map(fb => ({ ...fb, type: "received" })),
         ...sentFeedback.map(fb => ({ ...fb, type: "sent" }))
-      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      ];
     }
+
+    // Then apply the search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      feedbackList = feedbackList.filter(item => {
+        const text = (item.modified_text || item.original_text || "").toLowerCase();
+        const senderName = (item.sender?.full_name || "").toLowerCase();
+        const recipientName = (item.recipient?.full_name || "").toLowerCase();
+        const senderEmail = (item.sender?.email || "").toLowerCase();
+        const recipientEmail = (item.recipient?.email || "").toLowerCase();
+
+        return (
+          text.includes(query) ||
+          senderName.includes(query) ||
+          recipientName.includes(query) ||
+          senderEmail.includes(query) ||
+          recipientEmail.includes(query)
+        );
+      });
+    }
+
+    // Sort by creation date
+    return feedbackList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   };
 
   const filteredFeedback = getFilteredFeedback();
@@ -277,6 +305,20 @@ export default function ProfilePage() {
 
       <h2 className="text-2xl font-semibold mb-4">My feedback</h2>
 
+      {/* Search Input */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search by content, sender, recipient, or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
       {/* Filter Buttons */}
       <div className="mb-6 flex flex-wrap gap-2">
         <Button
@@ -302,16 +344,38 @@ export default function ProfilePage() {
         </Button>
       </div>
 
+      {/* Search Results Count */}
+      {searchQuery.trim() && (
+        <div className="mb-4">
+          <p className="text-sm text-muted-foreground">
+            Found {filteredFeedback.length} result{filteredFeedback.length !== 1 ? 's' : ''}
+            {searchQuery.trim() && ` for "${searchQuery}"`}
+          </p>
+        </div>
+      )}
+
       {/* Feedback Grid */}
       {filteredFeedback.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                {filter === "received" && "You haven't received any feedback yet."}
-                {filter === "sent" && "You haven't sent any feedback yet."}
-                {filter === "all" && "No feedback to display."}
-              </p>
+              {searchQuery.trim() ? (
+                <>
+                  <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">
+                    No feedback found matching your search.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Try adjusting your search terms or filters
+                  </p>
+                </>
+              ) : (
+                <p className="text-muted-foreground">
+                  {filter === "received" && "You haven't received any feedback yet."}
+                  {filter === "sent" && "You haven't sent any feedback yet."}
+                  {filter === "all" && "No feedback to display."}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

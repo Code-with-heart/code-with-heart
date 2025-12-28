@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Home, MessageSquare, User, Settings } from "lucide-react";
+import { Home, MessageSquare, User, Settings, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -31,6 +31,11 @@ const menuItems = [
     title: "Feedback",
     url: "/feedback",
     icon: MessageSquare,
+  },
+  {
+    title: "Search",
+    url: "/search",
+    icon: Search,
   },
   {
     title: "Profile",

@@ -155,7 +155,7 @@ export default function ClientComponent() {
 4. **Server Components**: Default to server components; only use client components when needed for interactivity
 5. **AI Integration**: All feedback must go through AI screening and optional reformulation before delivery
 6. **Code Cleanup**: Actively cleanup declined or changed code during sessions. When changes are rejected, deprecated, or no longer used, immediately remove the dead code to maintain a clean codebase. Do not leave commented-out code or unused implementations lingering in the project.
-
+7. **Debug and testing port**: The application is to be run with a random port other than 3000.
 ## GitHub Repository
 
 - **Repository**: Code-with-heart/code-with-heart (MonoRepo)
