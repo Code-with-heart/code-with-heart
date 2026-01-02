@@ -89,7 +89,7 @@ export function FeedbackForm({ onSubmitSuccess }) {
   return (
     <div className="w-full">
       <Card className="shadow-sm border-border/40">
-        <CardContent className="px-4 py-3">
+        <CardContent className="px-4 py-1">
           <form onSubmit={handleSubmit} className="space-y-3">
             <UserSelector
               value={recipient}

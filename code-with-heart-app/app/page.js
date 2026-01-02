@@ -200,7 +200,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-1 flex-col bg-muted/20">
       {/* Feedback Form Section */}
-      <div className="w-full border-b bg-background sticky top-0 z-10 shadow-sm">
+      <div className="w-full bg-muted/20 sticky top-0 z-10">
         <div className="container max-w-3xl mx-auto px-4 py-3">
           <FeedbackForm onSubmitSuccess={fetchPublishedFeedback} />
         </div>
