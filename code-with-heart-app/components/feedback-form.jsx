@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { UserSelector } from "@/components/user-selector"
+import { Card, CardContent } from "@/components/ui/card"
+import { Send } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 
 export function FeedbackForm({ onSubmitSuccess }) {
@@ -87,59 +87,83 @@ export function FeedbackForm({ onSubmitSuccess }) {
   }
 
   return (
-    <Card className="w-full shadow-lg">
-      <CardContent className="pt-5">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="recipient">Recipient</Label>
-              <UserSelector
-                value={recipient}
-                onValueChange={setRecipient}
-                disabled={isSubmitting}
-              />
-            </div>
+    <div className="w-full">
+      <Card className="shadow-sm border-border/40">
+        <CardContent className="px-4 py-3">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <UserSelector
+              value={recipient}
+              onValueChange={setRecipient}
+              disabled={isSubmitting}
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="feedback">Your Feedback</Label>
-              <Textarea
-                id="feedback"
-                placeholder="Write your feedback here..."
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                required
-                disabled={isSubmitting}
-                className="min-h-32"
-              />
-              <p className="text-xs text-muted-foreground">
-                Your feedback will be reviewed by AI and delivered to the recipient.
-              </p>
-            </div>
+            {recipient && (
+              <>
+                <Textarea
+                  id="feedback"
+                  placeholder="Write your feedback here..."
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                  className="min-h-24 resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your feedback will be reviewed by AI and delivered to the recipient.
+                </p>
+              </>
+            )}
 
-            <Button
-              type="submit"
-              disabled={isSubmitting || !recipient || !feedbackText}
-              className="w-full"
-            >
-              {isSubmitting ? "Submitting..." : "Submit Feedback"}
-            </Button>
+            <div className="flex items-center gap-2 justify-end pt-2 border-t">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setRecipient("")
+                  setFeedbackText("")
+                  setError("")
+                  setSuccess(false)
+                }}
+                disabled={isSubmitting}
+              >
+                Clear
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !recipient || !feedbackText}
+                size="sm"
+                className="gap-2"
+              >
+                {isSubmitting ? (
+                  "Submitting..."
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Submit
+                  </>
+                )}
+              </Button>
+            </div>
           </form>
-
-          {error && (
-            <div className="mt-4 p-4 bg-destructive/10 border border-destructive rounded-md">
-              <p className="text-sm text-destructive text-center">
-                {error}
-              </p>
-            </div>
-          )}
-
-          {success && (
-            <div className="mt-4 p-4 bg-primary/10 border border-primary rounded-md">
-              <p className="text-sm text-center">
-                Feedback submitted successfully! It will be reviewed and sent to the recipient.
-              </p>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {error && (
+        <div className="mt-3 p-3 bg-destructive/10 border border-destructive rounded-md">
+          <p className="text-xs text-destructive text-center">
+            {error}
+          </p>
+        </div>
+      )}
+
+      {success && (
+        <div className="mt-3 p-3 bg-primary/10 border border-primary rounded-md animate-in fade-in slide-in-from-top-2 duration-300">
+          <p className="text-xs text-center font-medium">
+            Feedback submitted successfully! It will be reviewed and sent to the recipient.
+          </p>
+        </div>
+      )}
+    </div>
   )
 }

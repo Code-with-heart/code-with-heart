@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Calendar } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MessageSquare, User } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FeedbackForm } from "@/components/feedback-form";
 import { createClient } from "@/utils/supabase/client";
@@ -159,6 +159,24 @@ export default function HomePage() {
     });
   };
 
+  const getRelativeTime = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSecs < 60) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return formatDate(dateString);
+  };
+
   const getFilteredFeedback = () => {
     if (facultyFilter === "all") return feedback;
 
@@ -180,28 +198,16 @@ export default function HomePage() {
   const filteredFeedback = getFilteredFeedback();
 
   return (
-    <div className="flex flex-1 flex-col">
-      {/* Hero Section with Feedback Form */}
-      <div className="w-full border-b bg-muted/30">
-        <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <div className="mb-6 text-center">
-            <h1 className="text-4xl font-bold mb-2">Code with Heart</h1>
-            <p className="text-muted-foreground text-lg">
-              Share constructive feedback with the HTWG community
-            </p>
-          </div>
+    <div className="flex flex-1 flex-col bg-muted/20">
+      {/* Feedback Form Section */}
+      <div className="w-full border-b bg-background sticky top-0 z-10 shadow-sm">
+        <div className="container max-w-3xl mx-auto px-4 py-3">
           <FeedbackForm onSubmitSuccess={fetchPublishedFeedback} />
         </div>
       </div>
 
       {/* Published Feedback Section */}
-      <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold mb-2">Published Feedback</h2>
-          <p className="text-muted-foreground">
-            See what the community is sharing
-          </p>
-        </div>
+      <div className="container max-w-3xl mx-auto px-4 py-6">
 
         {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive rounded-md">
@@ -211,8 +217,8 @@ export default function HomePage() {
 
         {/* Faculty Filter */}
         {!loading && faculties.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
+          <div className="mb-4 bg-background rounded-lg border p-4 shadow-sm">
+            <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
               Filter by Faculty
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -245,8 +251,8 @@ export default function HomePage() {
               ))}
             </div>
             {filteredFeedback.length !== feedback.length && (
-              <p className="text-sm text-muted-foreground mt-3">
-                Showing {filteredFeedback.length} of {feedback.length} feedback posts
+              <p className="text-xs text-muted-foreground mt-3">
+                Showing {filteredFeedback.length} of {feedback.length} posts
               </p>
             )}
           </div>
@@ -254,16 +260,34 @@ export default function HomePage() {
 
         {/* Feedback Feed */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <p className="text-muted-foreground">Loading feedback feed...</p>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="border-border/40 animate-pulse">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="aspect-square size-10 rounded-lg bg-muted"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-1/3"></div>
+                      <div className="h-3 bg-muted rounded w-1/4"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-muted rounded w-full"></div>
+                    <div className="h-3 bg-muted rounded w-5/6"></div>
+                    <div className="h-3 bg-muted rounded w-4/6"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : filteredFeedback.length === 0 ? (
-          <Card className="border-dashed">
+          <Card className="border-dashed border-2">
             <CardContent className="pt-6">
-              <div className="text-center py-16">
-                <p className="text-muted-foreground text-lg">
+              <div className="text-center py-12">
+                <MessageSquare className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-muted-foreground">
                   {facultyFilter === "all"
-                    ? "No published feedback yet. Be the first to share some feedback!"
+                    ? "No published feedback yet. Be the first to share!"
                     : "No feedback found for the selected faculty filter."
                   }
                 </p>
@@ -271,40 +295,44 @@ export default function HomePage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredFeedback.map((item) => (
-              <Card key={item.id} className="transition-shadow hover:shadow-md">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
-                          {item.sender?.full_name?.charAt(0)?.toUpperCase() || "?"}
-                        </div>
-                        <div>
-                          <CardTitle className="text-base mb-0">
-                            {item.sender?.full_name || "Unknown User"}
-                          </CardTitle>
-                          <p className="text-xs text-muted-foreground">
-                            Feedback to {item.recipient?.full_name || "Unknown User"}
-                          </p>
-                        </div>
+              <Card key={item.id} className="transition-all hover:shadow-md border-border/40">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground flex-shrink-0">
+                      <User className="size-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm">
+                          {item.sender?.full_name || "Unknown User"}
+                        </span>
+                        <span className="text-muted-foreground text-xs">→</span>
+                        <span className="text-sm text-muted-foreground">
+                          {item.recipient?.full_name || "Unknown User"}
+                        </span>
+                        {item.sender?.faculty && (
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full border"
+                            style={item.sender.faculty.color ? {
+                              backgroundColor: `${item.sender.faculty.color}15`,
+                              borderColor: `${item.sender.faculty.color}40`,
+                              color: item.sender.faculty.color
+                            } : {}}
+                          >
+                            {item.sender.faculty.abbreviation}
+                          </span>
+                        )}
                       </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {getRelativeTime(item.published_at || item.created_at)}
+                      </p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm whitespace-pre-wrap mb-4 leading-relaxed">
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
                     {item.modified_text || item.original_text}
                   </p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground pt-4 border-t">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>
-                        {formatDate(item.published_at || item.created_at)}
-                      </span>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             ))}
