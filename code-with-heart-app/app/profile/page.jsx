@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Globe, Lock, Calendar, Trash2, Search } from "lucide-react";
+import { Globe, Lock, Calendar, Trash2, Search, AlertCircle, Edit3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/dialog";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
+import { EditRejectedFeedbackDialog } from "@/components/edit-rejected-feedback-dialog";
 
 const MOCK_SENDER_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function ProfilePage() {
   const [receivedFeedback, setReceivedFeedback] = React.useState([]);
   const [sentFeedback, setSentFeedback] = React.useState([]);
-  const [filter, setFilter] = React.useState("all"); // "all", "received", "sent"
+  const [filter, setFilter] = React.useState("all"); // "all", "received", "sent", "rejected"
   const [searchQuery, setSearchQuery] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -29,6 +30,8 @@ export default function ProfilePage() {
   const [deletingIds, setDeletingIds] = React.useState(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [feedbackToDelete, setFeedbackToDelete] = React.useState(null);
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+  const [feedbackToEdit, setFeedbackToEdit] = React.useState(null);
 
   React.useEffect(() => {
     fetchFeedback();
@@ -75,7 +78,8 @@ export default function ProfilePage() {
           updated_at,
           published_at,
           delivered_at,
-          recipient_id
+          recipient_id,
+          ai_feedback
         `)
         .eq("sender_id", MOCK_SENDER_ID)
         .order("created_at", { ascending: false });
@@ -253,7 +257,9 @@ export default function ProfilePage() {
     if (filter === "received") {
       feedbackList = receivedFeedback.map(fb => ({ ...fb, type: "received" }));
     } else if (filter === "sent") {
-      feedbackList = sentFeedback.map(fb => ({ ...fb, type: "sent" }));
+      feedbackList = sentFeedback.filter(fb => fb.status !== "rejected").map(fb => ({ ...fb, type: "sent" }));
+    } else if (filter === "rejected") {
+      feedbackList = sentFeedback.filter(fb => fb.status === "rejected").map(fb => ({ ...fb, type: "rejected" }));
     } else {
       // "all" - combine both
       feedbackList = [
@@ -350,7 +356,14 @@ export default function ProfilePage() {
           onClick={() => setFilter("sent")}
           className="min-w-[100px]"
         >
-          Sent ({sentFeedback.length})
+          Sent ({sentFeedback.filter(f => f.status !== "rejected").length})
+        </Button>
+        <Button
+          variant={filter === "rejected" ? "destructive" : "outline"}
+          onClick={() => setFilter("rejected")}
+          className="min-w-[100px]"
+        >
+          Rejected ({sentFeedback.filter(f => f.status === "rejected").length})
         </Button>
       </div>
 
@@ -383,6 +396,7 @@ export default function ProfilePage() {
                 <p className="text-muted-foreground">
                   {filter === "received" && "You haven't received any feedback yet."}
                   {filter === "sent" && "You haven't sent any feedback yet."}
+                  {filter === "rejected" && "You don't have any rejected feedback."}
                   {filter === "all" && "No feedback to display."}
                 </p>
               )}
@@ -396,7 +410,8 @@ export default function ProfilePage() {
               key={item.id}
               className={cn(
                 "flex flex-col",
-                item.is_published && "border-primary/50"
+                item.is_published && "border-primary/50",
+                item.status === "rejected" && "border-destructive/50"
               )}
             >
               <CardHeader>
@@ -429,6 +444,22 @@ export default function ProfilePage() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1">
+                {/* Show rejection reason for rejected feedback */}
+                {item.status === "rejected" && item.ai_feedback && (
+                  <div className="border-l-4 border-destructive bg-destructive/10 p-3 rounded mb-4">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-destructive mb-1">
+                          Requires Revision
+                        </p>
+                        <p className="text-xs text-destructive/90">
+                          {item.ai_feedback}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <p className="text-sm whitespace-pre-wrap mb-4">
                   {item.modified_text || item.original_text}
                 </p>
@@ -487,6 +518,22 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 )}
+                {item.status === "rejected" && (
+                  <div className="flex items-end justify-end gap-2 mt-auto pt-4 border-t">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setFeedbackToEdit(item);
+                        setEditDialogOpen(true);
+                      }}
+                      className="w-full"
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit & Resubmit
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -530,6 +577,15 @@ export default function ProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditRejectedFeedbackDialog
+        feedback={feedbackToEdit}
+        isOpen={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={() => {
+          fetchFeedback();
+        }}
+      />
     </div>
   );
 }
