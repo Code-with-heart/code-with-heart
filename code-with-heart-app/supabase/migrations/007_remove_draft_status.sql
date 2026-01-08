@@ -10,8 +10,6 @@ DROP POLICY IF EXISTS "Recipients can update published status" ON feedback;
 
 -- Drop ALL triggers that depend on the status column
 DROP TRIGGER IF EXISTS feedback_set_delivered_at ON feedback;
-DROP TRIGGER IF EXISTS feedback_delivered_notification ON feedback;
-DROP TRIGGER IF EXISTS feedback_delivered_notification_insert ON feedback;
 DROP TRIGGER IF EXISTS update_feedback_updated_at ON feedback;
 
 -- Drop the default value temporarily
@@ -69,18 +67,6 @@ CREATE TRIGGER feedback_set_delivered_at
   FOR EACH ROW
   WHEN (NEW.status = 'delivered' AND (OLD.status IS NULL OR OLD.status != 'delivered') AND NEW.delivered_at IS NULL)
   EXECUTE FUNCTION update_delivered_at();
-
-CREATE TRIGGER feedback_delivered_notification
-  AFTER UPDATE OF status ON feedback
-  FOR EACH ROW
-  WHEN (NEW.status = 'delivered' AND (OLD.status IS NULL OR OLD.status != 'delivered'))
-  EXECUTE FUNCTION notify_feedback_delivered();
-
-CREATE TRIGGER feedback_delivered_notification_insert
-  AFTER INSERT ON feedback
-  FOR EACH ROW
-  WHEN (NEW.status = 'delivered')
-  EXECUTE FUNCTION notify_feedback_delivered();
 
 -- Add comment documenting the change
 COMMENT ON COLUMN feedback.status IS 'Current status in the feedback workflow (draft status removed - feedback immediately goes to pending_review)';
