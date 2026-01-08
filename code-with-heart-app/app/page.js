@@ -7,19 +7,18 @@ import { Button } from "@/components/ui/button";
 import { FeedbackForm } from "@/components/feedback-form";
 import { createClient } from "@/utils/supabase/client";
 
-const MOCK_SENDER_ID = '00000000-0000-0000-0000-000000000001';
-
 export default function HomePage() {
   const [feedback, setFeedback] = React.useState([]);
   const [faculties, setFaculties] = React.useState([]);
   const [facultyFilter, setFacultyFilter] = React.useState("all");
   const [currentUserFaculty, setCurrentUserFaculty] = React.useState(null);
+  const [currentUser, setCurrentUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
   React.useEffect(() => {
+    fetchCurrentUser();
     fetchFaculties();
-    fetchCurrentUserFaculty();
     fetchPublishedFeedback();
 
     // Poll for new feedback every 30 seconds
@@ -30,6 +29,35 @@ export default function HomePage() {
     // Cleanup interval on unmount
     return () => clearInterval(pollInterval);
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        setCurrentUser(user);
+        // Fetch user's faculty info
+        const { data: userData, error: userError } = await supabase
+          .from("user")
+          .select(`
+            faculty:faculty_id (
+              id,
+              name,
+              abbreviation
+            )
+          `)
+          .eq("id", user.id)
+          .single();
+
+        if (!userError && userData) {
+          setCurrentUserFaculty(userData.faculty);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+    }
+  };
 
   const fetchFaculties = async () => {
     try {
@@ -44,29 +72,6 @@ export default function HomePage() {
       }
     } catch (err) {
       console.error("Error fetching faculties:", err);
-    }
-  };
-
-  const fetchCurrentUserFaculty = async () => {
-    try {
-      const supabase = createClient();
-      const { data: userData, error: userError } = await supabase
-        .from("user")
-        .select(`
-          faculty:faculty_id (
-            id,
-            name,
-            abbreviation
-          )
-        `)
-        .eq("id", MOCK_SENDER_ID)
-        .single();
-
-      if (!userError && userData) {
-        setCurrentUserFaculty(userData.faculty);
-      }
-    } catch (err) {
-      console.error("Error fetching current user faculty:", err);
     }
   };
 
@@ -199,12 +204,14 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col bg-muted/20">
-      {/* Feedback Form Section */}
-      <div className="w-full bg-muted/20 sticky top-0 z-10">
-        <div className="container max-w-3xl mx-auto px-4 py-3">
-          <FeedbackForm onSubmitSuccess={fetchPublishedFeedback} />
+      {/* Feedback Form Section - only shown when logged in */}
+      {currentUser && (
+        <div className="w-full bg-muted/20 sticky top-0 z-10">
+          <div className="container max-w-3xl mx-auto px-4 py-3">
+            <FeedbackForm onSubmitSuccess={fetchPublishedFeedback} userId={currentUser.id} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Published Feedback Section */}
       <div className="container max-w-3xl mx-auto px-4 py-6">

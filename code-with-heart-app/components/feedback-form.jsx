@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Send } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 
-export function FeedbackForm({ onSubmitSuccess }) {
+export function FeedbackForm({ onSubmitSuccess, userId }) {
   const [recipient, setRecipient] = React.useState("")
   const [feedbackText, setFeedbackText] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -24,9 +24,12 @@ export function FeedbackForm({ onSubmitSuccess }) {
     try {
       const supabase = createClient()
 
-      // TODO: Replace with actual authenticated user ID once auth is implemented
-      // For now, using Max Mustermann (first test user) as sender
-      const MOCK_SENDER_ID = '00000000-0000-0000-0000-000000000001'
+      // Validate user is authenticated
+      if (!userId) {
+        setError("You must be logged in to submit feedback")
+        setIsSubmitting(false)
+        return
+      }
 
       // Validate recipient
       if (!recipient) {
@@ -48,7 +51,7 @@ export function FeedbackForm({ onSubmitSuccess }) {
         .from("feedback")
         .insert([
           {
-            sender_id: MOCK_SENDER_ID,
+            sender_id: userId,
             recipient_id: recipient,
             original_text: feedbackText.trim(),
             status: 'pending_review'

@@ -17,9 +17,8 @@ import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 import { EditRejectedFeedbackDialog } from "@/components/edit-rejected-feedback-dialog";
 
-const MOCK_SENDER_ID = '00000000-0000-0000-0000-000000000001';
-
 export default function ProfilePage() {
+  const [currentUser, setCurrentUser] = React.useState(null);
   const [receivedFeedback, setReceivedFeedback] = React.useState([]);
   const [sentFeedback, setSentFeedback] = React.useState([]);
   const [filter, setFilter] = React.useState("all"); // "all", "received", "sent", "rejected"
@@ -34,10 +33,26 @@ export default function ProfilePage() {
   const [feedbackToEdit, setFeedbackToEdit] = React.useState(null);
 
   React.useEffect(() => {
-    fetchFeedback();
+    fetchCurrentUser();
   }, []);
 
-  const fetchFeedback = async () => {
+  const fetchCurrentUser = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUser(user);
+        fetchFeedback(user.id);
+      }
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+      setLoading(false);
+    }
+  };
+
+  const fetchFeedback = async (userId) => {
+    if (!userId) return;
+
     try {
       setLoading(true);
       setError("");
@@ -57,7 +72,7 @@ export default function ProfilePage() {
           published_at,
           sender_id
         `)
-        .eq("recipient_id", MOCK_SENDER_ID)
+        .eq("recipient_id", userId)
         .eq("status", "delivered")
         .order("created_at", { ascending: false });
 
@@ -81,7 +96,7 @@ export default function ProfilePage() {
           recipient_id,
           ai_feedback
         `)
-        .eq("sender_id", MOCK_SENDER_ID)
+        .eq("sender_id", userId)
         .order("created_at", { ascending: false });
 
       if (sentError) {
@@ -157,7 +172,7 @@ export default function ProfilePage() {
         .from("feedback")
         .delete()
         .eq("id", feedbackToDelete.id)
-        .eq("recipient_id", MOCK_SENDER_ID); // Ensure we can only delete our own feedback
+        .eq("recipient_id", currentUser.id); // Ensure we can only delete our own feedback
 
       if (deleteError) {
         console.error("Error deleting feedback:", deleteError);
@@ -205,7 +220,7 @@ export default function ProfilePage() {
         .from("feedback")
         .update(updateData)
         .eq("id", feedbackId)
-        .eq("recipient_id", MOCK_SENDER_ID); // Ensure we can only update our own feedback
+        .eq("recipient_id", currentUser.id); // Ensure we can only update our own feedback
 
       if (updateError) {
         console.error("Error updating feedback:", updateError);
@@ -583,7 +598,9 @@ export default function ProfilePage() {
         isOpen={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         onSuccess={() => {
-          fetchFeedback();
+          if (currentUser) {
+            fetchFeedback(currentUser.id);
+          }
         }}
       />
     </div>
