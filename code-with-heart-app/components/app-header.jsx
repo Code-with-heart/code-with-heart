@@ -20,6 +20,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { UserAvatar } from "@/components/user-avatar";
+import { createClient } from "@/utils/supabase/client";
 
 const menuItems = [
   {
@@ -46,6 +48,23 @@ const menuItems = [
 
 function AppSidebar({ user }) {
   const pathname = usePathname();
+  const [fullName, setFullName] = React.useState("");
+
+  React.useEffect(() => {
+    const fetchFullName = async () => {
+      if (!user?.id) return;
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("user")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      if (data?.full_name) {
+        setFullName(data.full_name);
+      }
+    };
+    fetchFullName();
+  }, [user?.id]);
 
   return (
     <Sidebar collapsible="icon">
@@ -99,11 +118,9 @@ function AppSidebar({ user }) {
               <SidebarMenuItem>
                 <SidebarMenuButton size="lg" asChild>
                   <div className="flex items-center gap-2">
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                      <User className="size-4" />
-                    </div>
+                    <UserAvatar fullName={fullName} />
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">Account</span>
+                      <span className="truncate font-semibold">{fullName || "Account"}</span>
                       <span className="truncate text-xs">{user.email}</span>
                     </div>
                   </div>
@@ -111,9 +128,10 @@ function AppSidebar({ user }) {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  size="sm"
+                  size="md"
                   onClick={() => signOut()}
                   tooltip="Sign out"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 justify-center"
                 >
                   <LogOut className="size-4" />
                   <span>Sign out</span>
@@ -124,9 +142,7 @@ function AppSidebar({ user }) {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <Link href="/login">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    <User className="size-4" />
-                  </div>
+                  <UserAvatar />
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">Sign in</span>
                     <span className="truncate text-xs">Access your account</span>

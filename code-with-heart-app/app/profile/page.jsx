@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createClient } from "@/utils/supabase/client";
-import { cn } from "@/lib/utils";
 import { EditRejectedFeedbackDialog } from "@/components/edit-rejected-feedback-dialog";
 
 export default function ProfilePage() {
@@ -58,7 +57,7 @@ export default function ProfilePage() {
       setError("");
       const supabase = createClient();
 
-      // Fetch feedback where this user is the recipient and status is "delivered"
+      // Fetch feedback where this user is the recipient and status is "delivered" or "published"
       const { data: receivedData, error: receivedError } = await supabase
         .from("feedback")
         .select(`
@@ -73,7 +72,7 @@ export default function ProfilePage() {
           sender_id
         `)
         .eq("recipient_id", userId)
-        .eq("status", "delivered")
+        .in("status", ["delivered", "published"])
         .order("created_at", { ascending: false });
 
       if (receivedError) {
@@ -394,8 +393,8 @@ export default function ProfilePage() {
 
       {/* Feedback Grid */}
       {filteredFeedback.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-dashed border-border/40">
+          <CardContent className="p-4">
             <div className="text-center py-12">
               {searchQuery.trim() ? (
                 <>
@@ -423,27 +422,23 @@ export default function ProfilePage() {
           {filteredFeedback.map((item) => (
             <Card
               key={item.id}
-              className={cn(
-                "flex flex-col",
-                item.is_published && "border-primary/50",
-                item.status === "rejected" && "border-destructive/50"
-              )}
+              className="flex flex-col"
             >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <CardTitle className="text-base mb-1">
                       {item.type === "received"
-                        ? item.sender?.full_name || "Unknown User"
+                        ? `From: ${item.sender?.full_name || "Unknown User"}`
                         : `To: ${item.recipient?.full_name || "Unknown User"}`
                       }
                     </CardTitle>
-                    <p className="text-xs text-muted-foreground">
+                    {/* <p className="text-xs text-muted-foreground">
                       {item.type === "received"
-                        ? item.sender?.email || "No email"
-                        : item.recipient?.email || "No email"
+                        ? `To: ${item.recipient?.full_name || "Unknown User"}`
+                        : `From: ${item.sender?.full_name || "Unknown User"}`
                       }
-                    </p>
+                    </p> */}
                   </div>
                   {item.type === "received" && item.is_published && (
                     <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md">
@@ -527,7 +522,7 @@ export default function ProfilePage() {
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteClick(item)}
-                      disabled={updatingIds.has(item.id) || deletingIds.has(item.id)}
+                      disabled={updatingIds.has(item.id) || deletingIds.has(item.id) || item.is_published}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

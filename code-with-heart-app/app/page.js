@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { MessageSquare, User } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FeedbackForm } from "@/components/feedback-form";
+import { UserAvatar } from "@/components/user-avatar";
 import { createClient } from "@/utils/supabase/client";
 
 export default function HomePage() {
@@ -20,14 +21,6 @@ export default function HomePage() {
     fetchCurrentUser();
     fetchFaculties();
     fetchPublishedFeedback();
-
-    // Poll for new feedback every 30 seconds
-    const pollInterval = setInterval(() => {
-      fetchPublishedFeedback();
-    }, 30000);
-
-    // Cleanup interval on unmount
-    return () => clearInterval(pollInterval);
   }, []);
 
   const fetchCurrentUser = async () => {
@@ -182,20 +175,37 @@ export default function HomePage() {
     return formatDate(dateString);
   };
 
+  const FacultyBadge = ({ faculty, size = "default" }) => {
+    if (!faculty) return null;
+    const sizeClasses = size === "small"
+      ? "text-[9px] px-1 py-px"
+      : "text-[10px] px-1.5 py-0.5";
+    return (
+      <span
+        className={`${sizeClasses} rounded-full border font-medium`}
+        style={faculty.color ? {
+          backgroundColor: `${faculty.color}50`,
+          borderColor: faculty.color,
+          color: `color-mix(in srgb, ${faculty.color} 100%, black 40%)`
+        } : {}}
+      >
+        {faculty.abbreviation}
+      </span>
+    );
+  };
+
   const getFilteredFeedback = () => {
     if (facultyFilter === "all") return feedback;
 
     if (facultyFilter === "my-faculty") {
       if (!currentUserFaculty?.id) return feedback;
       return feedback.filter(fb =>
-        fb.sender?.faculty?.id === currentUserFaculty.id ||
         fb.recipient?.faculty?.id === currentUserFaculty.id
       );
     }
 
     // Specific faculty (facultyFilter is faculty ID)
     return feedback.filter(fb =>
-      fb.sender?.faculty?.id === facultyFilter ||
       fb.recipient?.faculty?.id === facultyFilter
     );
   };
@@ -205,10 +215,29 @@ export default function HomePage() {
   return (
     <div className="flex flex-1 flex-col bg-muted/20">
       {/* Feedback Form Section - only shown when logged in */}
-      {currentUser && (
+      {currentUser ? (
         <div className="w-full bg-muted/20 sticky top-0 z-10">
           <div className="container max-w-3xl mx-auto px-4 py-3">
             <FeedbackForm onSubmitSuccess={fetchPublishedFeedback} userId={currentUser.id} />
+          </div>
+        </div>
+      ) : (
+        <div className="w-full bg-muted/20">
+          <div className="container max-w-3xl mx-auto px-4 py-3">
+            <Card className="border-dashed border-border/40">
+              <CardContent className="p-4">
+                <div className="text-center">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Share Your Appreciation</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Sign in to give heartfelt feedback to your fellow students and university community
+                  </p>
+                  <Button asChild size="lg">
+                    <a href="/login">Sign in to get started</a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
@@ -226,7 +255,7 @@ export default function HomePage() {
         {!loading && faculties.length > 0 && (
           <div className="mb-4 bg-background rounded-lg border p-4 shadow-sm">
             <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
-              Filter by Faculty
+              Filter by Recipient's Faculty
             </h3>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -270,7 +299,7 @@ export default function HomePage() {
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="border-border/40 animate-pulse">
-                <CardContent className="p-4">
+                <CardContent>
                   <div className="flex items-start gap-3 mb-3">
                     <div className="aspect-square size-10 rounded-lg bg-muted"></div>
                     <div className="flex-1 space-y-2">
@@ -288,8 +317,8 @@ export default function HomePage() {
             ))}
           </div>
         ) : filteredFeedback.length === 0 ? (
-          <Card className="border-dashed border-2">
-            <CardContent className="pt-6">
+          <Card className="border-dashed border-border/40">
+            <CardContent>
               <div className="text-center py-12">
                 <MessageSquare className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
                 <p className="text-muted-foreground">
@@ -305,36 +334,27 @@ export default function HomePage() {
           <div className="space-y-3">
             {filteredFeedback.map((item) => (
               <Card key={item.id} className="transition-all hover:shadow-md border-border/40">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground flex-shrink-0">
-                      <User className="size-4" />
-                    </div>
+                <CardContent>
+                  <div className="flex items-start gap-3 mb-4">
+                    <UserAvatar fullName={item.recipient?.full_name} size="large" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">
-                          {item.sender?.full_name || "Unknown User"}
-                        </span>
-                        <span className="text-muted-foreground text-xs">→</span>
-                        <span className="text-sm text-muted-foreground">
-                          {item.recipient?.full_name || "Unknown User"}
-                        </span>
-                        {item.sender?.faculty && (
-                          <span
-                            className="text-xs px-2 py-0.5 rounded-full border"
-                            style={item.sender.faculty.color ? {
-                              backgroundColor: `${item.sender.faculty.color}15`,
-                              borderColor: `${item.sender.faculty.color}40`,
-                              color: item.sender.faculty.color
-                            } : {}}
-                          >
-                            {item.sender.faculty.abbreviation}
+                      <div className="flex items-start justify-between gap-2 mb-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm">
+                            {item.recipient?.full_name || "Unknown User"}
                           </span>
-                        )}
+                          <FacultyBadge faculty={item.recipient?.faculty} />
+                        </div>
+                        <p className="text-xs text-muted-foreground whitespace-nowrap">
+                          {getRelativeTime(item.published_at || item.created_at)}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {getRelativeTime(item.published_at || item.created_at)}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-muted-foreground">
+                          from: {item.sender?.full_name || "Unknown User"}
+                        </p>
+                        <FacultyBadge faculty={item.sender?.faculty} size="small" />
+                      </div>
                     </div>
                   </div>
                   <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">

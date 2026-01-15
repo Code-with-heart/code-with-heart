@@ -14,6 +14,23 @@ export function FeedbackForm({ onSubmitSuccess, userId }) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState("")
   const [success, setSuccess] = React.useState(false)
+  const [currentUserName, setCurrentUserName] = React.useState("")
+
+  React.useEffect(() => {
+    const fetchCurrentUserName = async () => {
+      if (!userId) return
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("user")
+        .select("full_name")
+        .eq("id", userId)
+        .single()
+      if (data?.full_name) {
+        setCurrentUserName(data.full_name)
+      }
+    }
+    fetchCurrentUserName()
+  }, [userId])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -91,13 +108,15 @@ export function FeedbackForm({ onSubmitSuccess, userId }) {
 
   return (
     <div className="w-full">
-      <Card className="shadow-sm border-border/40">
-        <CardContent className="px-4 py-1">
+      <Card className="transition-all hover:shadow-md border-border/40">
+        <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             <UserSelector
               value={recipient}
               onValueChange={setRecipient}
               disabled={isSubmitting}
+              currentUserName={currentUserName}
+              currentUserId={userId}
             />
 
             {recipient && (

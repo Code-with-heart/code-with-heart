@@ -291,7 +291,7 @@ export default function SearchPage() {
       {/* Feedback Grid */}
       {filteredFeedback.length === 0 ? (
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <div className="text-center py-12">
               {searchQuery.trim() || facultyFilter !== "all" ? (
                 <>
@@ -320,23 +320,16 @@ export default function SearchPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredFeedback.map((item) => (
-            <Card
-              key={item.id}
-              className="flex flex-col border-primary/50"
-            >
+            <Card key={item.id} className="flex flex-col" >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <CardTitle className="text-base mb-1">
-                      {item.sender?.full_name || "Unknown User"}
+                      {item.recipient?.full_name || "Unknown User"}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">
-                      To: {item.recipient?.full_name || "Unknown User"}
+                      From: {item.sender?.full_name || "Unknown User"}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md">
-                    <Globe className="h-3 w-3" />
-                    <span className="text-xs font-medium">Published</span>
                   </div>
                 </div>
               </CardHeader>

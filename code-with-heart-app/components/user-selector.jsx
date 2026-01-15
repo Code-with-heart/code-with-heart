@@ -1,12 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { Check, User } from "lucide-react"
+import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
+import { UserAvatar } from "@/components/user-avatar"
 import { createClient } from "@/utils/supabase/client"
 
-export function UserSelector({ value, onValueChange, disabled }) {
+export function UserSelector({ value, onValueChange, disabled, currentUserName, currentUserId }) {
   const [users, setUsers] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   const [searchText, setSearchText] = React.useState("")
@@ -84,15 +85,20 @@ export function UserSelector({ value, onValueChange, disabled }) {
   }
 
   const filteredUsers = React.useMemo(() => {
-    if (!searchText.trim()) return users
+    // Filter out current user - can't give feedback to yourself
+    const availableUsers = currentUserId
+      ? users.filter(user => user.id !== currentUserId)
+      : users
+
+    if (!searchText.trim()) return availableUsers
 
     const query = searchText.toLowerCase()
-    return users.filter(
+    return availableUsers.filter(
       (user) =>
         user.full_name.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query)
     )
-  }, [users, searchText])
+  }, [users, searchText, currentUserId])
 
   const handleInputChange = (e) => {
     const newValue = e.target.value
@@ -141,9 +147,7 @@ export function UserSelector({ value, onValueChange, disabled }) {
 
   return (
     <div className="relative flex items-center gap-2">
-      <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shrink-0">
-        <User className="size-4" />
-      </div>
+      <UserAvatar fullName={currentUserName} />
       <div className="relative flex-1">
         <Input
           ref={inputRef}
