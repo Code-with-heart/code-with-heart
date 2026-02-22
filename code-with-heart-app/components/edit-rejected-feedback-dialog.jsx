@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { AlertCircle } from "lucide-react"
-import { createClient } from "@/utils/supabase/client"
 
 export function EditRejectedFeedbackDialog({
   feedback,
@@ -39,21 +38,22 @@ export function EditRejectedFeedbackDialog({
     try {
       setIsSubmitting(true)
       setError("")
-      const supabase = createClient()
 
-      // Update feedback: reset to pending_review with new text
-      const { error: updateError } = await supabase
-        .from("feedback")
-        .update({
-          original_text: editedText.trim(),
-          status: 'pending_review',
-          ai_feedback: null, // Clear previous rejection reason
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", feedback.id)
+      const response = await fetch(`/api/feedback/${feedback.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "resubmit",
+          text: editedText.trim(),
+        }),
+      })
 
-      if (updateError) {
-        throw updateError
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to resubmit")
       }
 
       // Success - close dialog and refresh

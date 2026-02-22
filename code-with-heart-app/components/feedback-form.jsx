@@ -6,31 +6,13 @@ import { Button } from "@/components/ui/button"
 import { UserSelector } from "@/components/user-selector"
 import { Card, CardContent } from "@/components/ui/card"
 import { Send } from "lucide-react"
-import { createClient } from "@/utils/supabase/client"
 
-export function FeedbackForm({ onSubmitSuccess, userId }) {
+export function FeedbackForm({ onSubmitSuccess, userId, currentUserName }) {
   const [recipient, setRecipient] = React.useState("")
   const [feedbackText, setFeedbackText] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState("")
   const [success, setSuccess] = React.useState(false)
-  const [currentUserName, setCurrentUserName] = React.useState("")
-
-  React.useEffect(() => {
-    const fetchCurrentUserName = async () => {
-      if (!userId) return
-      const supabase = createClient()
-      const { data } = await supabase
-        .from("user")
-        .select("full_name")
-        .eq("id", userId)
-        .single()
-      if (data?.full_name) {
-        setCurrentUserName(data.full_name)
-      }
-    }
-    fetchCurrentUserName()
-  }, [userId])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -39,8 +21,6 @@ export function FeedbackForm({ onSubmitSuccess, userId }) {
     setSuccess(false)
 
     try {
-      const supabase = createClient()
-
       // Validate user is authenticated
       if (!userId) {
         setError("You must be logged in to submit feedback")
@@ -64,26 +44,24 @@ export function FeedbackForm({ onSubmitSuccess, userId }) {
 
       // Insert feedback into database
       // Feedback is immediately sent for AI review (no draft state)
-      const { data, error: insertError } = await supabase
-        .from("feedback")
-        .insert([
-          {
-            sender_id: userId,
-            recipient_id: recipient,
-            original_text: feedbackText.trim(),
-            status: 'pending_review'
-          }
-        ])
-        .select()
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipientId: recipient,
+          text: feedbackText.trim(),
+        }),
+      })
 
-      if (insertError) {
-        console.error("Error submitting feedback:", insertError)
-        setError(`Failed to submit feedback: ${insertError.message}`)
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(`Failed to submit feedback: ${result?.error || "Unknown error"}`)
         setIsSubmitting(false)
         return
       }
-
-      console.log("Feedback submitted successfully:", data)
 
       // Reset form
       setRecipient("")

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Globe, Lock, Calendar, Trash2, Search, AlertCircle, Edit3 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createClient } from "@/utils/supabase/client";
 import { EditRejectedFeedbackDialog } from "@/components/edit-rejected-feedback-dialog";
 
 export default function ProfilePage() {
@@ -30,18 +30,28 @@ export default function ProfilePage() {
   const [feedbackToDelete, setFeedbackToDelete] = React.useState(null);
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [feedbackToEdit, setFeedbackToEdit] = React.useState(null);
+  const { data: session } = useSession();
 
   React.useEffect(() => {
-    fetchCurrentUser();
-  }, []);
+    if (session?.user?.id) {
+      fetchCurrentUser();
+    } else {
+      setLoading(false);
+    }
+  }, [session?.user?.id]);
 
   const fetchCurrentUser = async () => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setCurrentUser(user);
-        fetchFeedback(user.id);
+      const response = await fetch("/api/users/me");
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to load profile");
+      }
+
+      if (result?.data) {
+        setCurrentUser(result.data);
+        fetchFeedback(result.data.id);
       }
     } catch (err) {
       console.error("Error fetching current user:", err);
@@ -55,98 +65,15 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       setError("");
-      const supabase = createClient();
+      const response = await fetch("/api/feedback/user");
+      const result = await response.json();
 
-      // Fetch feedback where this user is the recipient and status is "delivered" or "published"
-      const { data: receivedData, error: receivedError } = await supabase
-        .from("feedback")
-        .select(`
-          id,
-          original_text,
-          modified_text,
-          status,
-          is_published,
-          created_at,
-          updated_at,
-          published_at,
-          sender_id
-        `)
-        .eq("recipient_id", userId)
-        .in("status", ["delivered", "published"])
-        .order("created_at", { ascending: false });
-
-      if (receivedError) {
-        throw receivedError;
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to load feedback");
       }
 
-      // Fetch feedback where this user is the sender
-      const { data: sentData, error: sentError } = await supabase
-        .from("feedback")
-        .select(`
-          id,
-          original_text,
-          modified_text,
-          status,
-          is_published,
-          created_at,
-          updated_at,
-          published_at,
-          delivered_at,
-          recipient_id,
-          ai_feedback
-        `)
-        .eq("sender_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (sentError) {
-        throw sentError;
-      }
-
-      // Fetch sender information for received feedback
-      const senderIds = [...new Set((receivedData || []).map(f => f.sender_id))];
-      // Fetch recipient information for sent feedback
-      const recipientIds = [...new Set((sentData || []).map(f => f.recipient_id))];
-      const allUserIds = [...new Set([...senderIds, ...recipientIds])];
-
-      let usersMap = new Map();
-
-      if (allUserIds.length > 0) {
-        const { data: usersData, error: usersError} = await supabase
-          .from("user")
-          .select(`
-            id,
-            full_name,
-            email,
-            faculty:faculty_id (
-              id,
-              name,
-              abbreviation,
-              color
-            )
-          `)
-          .in("id", allUserIds);
-
-        if (usersError) {
-          console.warn("Error fetching user information:", usersError);
-        } else {
-          usersMap = new Map((usersData || []).map(u => [u.id, u]));
-        }
-      }
-
-      // Combine received feedback with sender data
-      const received = (receivedData || []).map(fb => ({
-        ...fb,
-        sender: usersMap.get(fb.sender_id) || null,
-      }));
-
-      // Combine sent feedback with recipient data
-      const sent = (sentData || []).map(fb => ({
-        ...fb,
-        recipient: usersMap.get(fb.recipient_id) || null,
-      }));
-
-      setReceivedFeedback(received || []);
-      setSentFeedback(sent || []);
+      setReceivedFeedback(result.received || []);
+      setSentFeedback(result.sent || []);
     } catch (err) {
       console.error("Error fetching feedback:", err);
       setError(`Failed to load feedback: ${err.message || "An unexpected error occurred. Please try again."}`);
@@ -165,28 +92,22 @@ export default function ProfilePage() {
 
     try {
       setDeletingIds(prev => new Set(prev).add(feedbackToDelete.id));
-      const supabase = createClient();
+      const response = await fetch(`/api/feedback/${feedbackToDelete.id}`, {
+        method: "DELETE",
+      });
 
-      const { error: deleteError } = await supabase
-        .from("feedback")
-        .delete()
-        .eq("id", feedbackToDelete.id)
-        .eq("recipient_id", currentUser.id); // Ensure we can only delete our own feedback
+      const result = await response.json();
 
-      if (deleteError) {
-        console.error("Error deleting feedback:", deleteError);
-        setError(`Failed to delete feedback: ${deleteError.message}`);
-        setDeleteDialogOpen(false);
-        setFeedbackToDelete(null);
-      } else {
-        // Remove from local state (only from received feedback)
-        setReceivedFeedback(prev => prev.filter(fb => fb.id !== feedbackToDelete.id));
-        setDeleteDialogOpen(false);
-        setFeedbackToDelete(null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to delete feedback");
       }
+
+      setReceivedFeedback(prev => prev.filter(fb => fb.id !== feedbackToDelete.id));
+      setDeleteDialogOpen(false);
+      setFeedbackToDelete(null);
     } catch (err) {
       console.error("Error deleting feedback:", err);
-      setError("An unexpected error occurred. Please try again.");
+      setError(err.message || "An unexpected error occurred. Please try again.");
       setDeleteDialogOpen(false);
       setFeedbackToDelete(null);
     } finally {
@@ -201,47 +122,39 @@ export default function ProfilePage() {
   const handleTogglePublish = async (feedbackId, currentPublishedState) => {
     try {
       setUpdatingIds(prev => new Set(prev).add(feedbackId));
-      const supabase = createClient();
-
       const newPublishedState = !currentPublishedState;
-      const updateData = {
-        is_published: newPublishedState,
-        status: newPublishedState ? "published" : "delivered",
-      };
+      const response = await fetch(`/api/feedback/${feedbackId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "toggle_publish",
+          isPublished: newPublishedState,
+        }),
+      });
 
-      if (newPublishedState) {
-        updateData.published_at = new Date().toISOString();
-      } else {
-        updateData.published_at = null;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to update feedback");
       }
 
-      const { error: updateError } = await supabase
-        .from("feedback")
-        .update(updateData)
-        .eq("id", feedbackId)
-        .eq("recipient_id", currentUser.id); // Ensure we can only update our own feedback
-
-      if (updateError) {
-        console.error("Error updating feedback:", updateError);
-        setError(`Failed to update feedback: ${updateError.message}`);
-      } else {
-        // Update local state (only in received feedback)
-        setReceivedFeedback(prev =>
-          prev.map(fb =>
-            fb.id === feedbackId
-              ? {
-                  ...fb,
-                  is_published: newPublishedState,
-                  status: newPublishedState ? "published" : "delivered",
-                  published_at: newPublishedState ? new Date().toISOString() : null,
-                }
-              : fb
-          )
-        );
-      }
+      setReceivedFeedback(prev =>
+        prev.map(fb =>
+          fb.id === feedbackId
+            ? {
+                ...fb,
+                is_published: newPublishedState,
+                status: newPublishedState ? "published" : "delivered",
+                published_at: newPublishedState ? new Date().toISOString() : null,
+              }
+            : fb
+        )
+      );
     } catch (err) {
       console.error("Error updating feedback:", err);
-      setError("An unexpected error occurred. Please try again.");
+      setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setUpdatingIds(prev => {
         const next = new Set(prev);

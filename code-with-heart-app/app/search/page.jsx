@@ -5,9 +5,6 @@ import { Globe, Calendar, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/utils/supabase/client";
-
-const MOCK_SENDER_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function SearchPage() {
   const [publishedFeedback, setPublishedFeedback] = React.useState([]);
@@ -26,15 +23,14 @@ export default function SearchPage() {
 
   const fetchFaculties = async () => {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("faculty")
-        .select("id, name, abbreviation, color")
-        .order("name");
+      const response = await fetch("/api/faculties");
+      const result = await response.json();
 
-      if (!error) {
-        setFaculties(data || []);
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to load faculties");
       }
+
+      setFaculties(result.data || []);
     } catch (err) {
       console.error("Error fetching faculties:", err);
     }
@@ -42,21 +38,15 @@ export default function SearchPage() {
 
   const fetchCurrentUserFaculty = async () => {
     try {
-      const supabase = createClient();
-      const { data: userData, error: userError } = await supabase
-        .from("user")
-        .select(`
-          faculty:faculty_id (
-            id,
-            name,
-            abbreviation
-          )
-        `)
-        .eq("id", MOCK_SENDER_ID)
-        .single();
+      const response = await fetch("/api/users/me");
+      const result = await response.json();
 
-      if (!userError && userData) {
-        setCurrentUserFaculty(userData.faculty);
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to load user");
+      }
+
+      if (result?.data?.faculty) {
+        setCurrentUserFaculty(result.data.faculty);
       }
     } catch (err) {
       console.error("Error fetching current user faculty:", err);
@@ -67,68 +57,14 @@ export default function SearchPage() {
     try {
       setLoading(true);
       setError("");
-      const supabase = createClient();
+      const response = await fetch("/api/feedback/published");
+      const result = await response.json();
 
-      // Fetch all published feedback
-      const { data: feedbackData, error: feedbackError } = await supabase
-        .from("feedback")
-        .select(`
-          id,
-          original_text,
-          modified_text,
-          status,
-          is_published,
-          created_at,
-          published_at,
-          sender_id,
-          recipient_id
-        `)
-        .eq("is_published", true)
-        .eq("status", "published")
-        .order("published_at", { ascending: false });
-
-      if (feedbackError) {
-        throw feedbackError;
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to load feedback");
       }
 
-      // Fetch user information for all senders and recipients
-      const senderIds = [...new Set((feedbackData || []).map(f => f.sender_id))];
-      const recipientIds = [...new Set((feedbackData || []).map(f => f.recipient_id))];
-      const allUserIds = [...new Set([...senderIds, ...recipientIds])];
-
-      let usersMap = new Map();
-
-      if (allUserIds.length > 0) {
-        const { data: usersData, error: usersError } = await supabase
-          .from("user")
-          .select(`
-            id,
-            full_name,
-            email,
-            faculty:faculty_id (
-              id,
-              name,
-              abbreviation,
-              color
-            )
-          `)
-          .in("id", allUserIds);
-
-        if (usersError) {
-          console.warn("Error fetching user information:", usersError);
-        } else {
-          usersMap = new Map((usersData || []).map(u => [u.id, u]));
-        }
-      }
-
-      // Combine feedback with user data
-      const enrichedFeedback = (feedbackData || []).map(fb => ({
-        ...fb,
-        sender: usersMap.get(fb.sender_id) || null,
-        recipient: usersMap.get(fb.recipient_id) || null,
-      }));
-
-      setPublishedFeedback(enrichedFeedback);
+      setPublishedFeedback(result.data || []);
     } catch (err) {
       console.error("Error fetching published feedback:", err);
       setError(`Failed to load feedback: ${err.message || "An unexpected error occurred. Please try again."}`);
@@ -178,15 +114,10 @@ export default function SearchPage() {
         const text = (item.modified_text || item.original_text || "").toLowerCase();
         const senderName = (item.sender?.full_name || "").toLowerCase();
         const recipientName = (item.recipient?.full_name || "").toLowerCase();
-        const senderEmail = (item.sender?.email || "").toLowerCase();
-        const recipientEmail = (item.recipient?.email || "").toLowerCase();
-
         return (
           text.includes(query) ||
           senderName.includes(query) ||
-          recipientName.includes(query) ||
-          senderEmail.includes(query) ||
-          recipientEmail.includes(query)
+          recipientName.includes(query)
         );
       });
     }
@@ -227,7 +158,7 @@ export default function SearchPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search by content, sender, recipient, or email..."
+            placeholder="Search by content, sender, or recipient..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
