@@ -103,8 +103,8 @@ export const authOptions: NextAuthOptions = {
       name: "HTWG OIDC",
       type: "oauth",
       wellKnown: "https://idp.htwg-konstanz.de/idp/profile/oidc/configuration",
-      clientId: process.env.OIDC_CLIENT_ID,
-      clientSecret: process.env.OIDC_CLIENT_SECRET,
+      clientId: process.env.HTWG_OIDC_CLIENT_ID,
+      clientSecret: process.env.HTWG_OIDC_CLIENT_SECRET,
       authorization: { params: { scope: "openid email profile" } },
       idToken: true,
       checks: ["pkce", "state"],
@@ -117,19 +117,37 @@ export const authOptions: NextAuthOptions = {
         };
       },
     },
+    {
+      id: "htwg-oidc-test",
+      name: "HTWG OIDC Test",
+      type: "oauth",
+      wellKnown:
+        "https://idp-test.htwg-konstanz.de/idp/profile/oidc/configuration",
+      clientId: process.env.HTWG_TEST_OIDC_CLIENT_ID,
+      clientSecret: process.env.HTWG_TEST_OIDC_CLIENT_SECRET,
+      authorization: { params: { scope: "openid email profile" } },
+      idToken: true,
+      checks: ["pkce", "state"],
+      profile(profile) {
+        return profile;
+      },
+    },
   ],
   callbacks: {
     async signIn({ profile }) {
       if (!isAllowedEmail(profile?.email)) {
         return false;
       }
-
-      const userRecord = await upsertUserFromProfile(profile as Record<string, any>);
+      const userRecord = await upsertUserFromProfile(
+        profile as Record<string, any>,
+      );
       return Boolean(userRecord?.id);
     },
     async jwt({ token, account, profile }) {
       if (account && profile) {
-        const userRecord = await upsertUserFromProfile(profile as Record<string, any>);
+        const userRecord = await upsertUserFromProfile(
+          profile as Record<string, any>,
+        );
         if (!userRecord?.id) {
           console.error("Unable to map OIDC profile to user record.");
         }

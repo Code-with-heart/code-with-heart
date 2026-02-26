@@ -8,15 +8,21 @@ import { signIn } from "next-auth/react"
 
 export default function LoginPage() {
   const searchParams = useSearchParams()
-  const [isLoading, setIsLoading] = React.useState(false)
+  const [isLoadingHtwg, setIsLoadingHtwg] = React.useState(false)
+  const [isLoadingTest, setIsLoadingTest] = React.useState(false)
   const errorParam = searchParams.get("error")
   const errorMessage = errorParam
     ? "Sign in failed. Please use your HTWG account."
     : ""
 
   const handleSignIn = async () => {
-    setIsLoading(true)
-    await signIn("htwg-oidc", { callbackUrl: "/" })
+    setIsLoadingHtwg(true)
+    await signIn("htwg-oidc", { callbackUrl: "http://localhost:3000" })
+  }
+
+  const handleTestSignIn = async () => {
+    setIsLoadingTest(true)
+    await signIn("htwg-oidc-test", { callbackUrl: "http://localhost:3000" })
   }
 
   return (
@@ -28,15 +34,25 @@ export default function LoginPage() {
             Sign in with your HTWG account
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <Button
             type="button"
             className="w-full"
-            disabled={isLoading}
+            disabled={isLoadingHtwg}
             onClick={handleSignIn}
           >
-            {isLoading ? "Redirecting..." : "Sign in with HTWG"}
+            {isLoadingHtwg ? "Redirecting..." : "Sign in"}
           </Button>
+          {process.env.NODE_ENV === "development" && (
+          <Button
+            type="button"
+            className="w-full"
+            disabled={isLoadingTest}
+            onClick={handleTestSignIn}
+          >
+            {isLoadingTest ? "Redirecting..." : "Sign in (test)"}
+          </Button>
+          )}
 
           {errorMessage && (
             <div className="mt-4 p-3 bg-destructive/10 border border-destructive rounded-md">
