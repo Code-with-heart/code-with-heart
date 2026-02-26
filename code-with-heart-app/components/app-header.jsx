@@ -4,7 +4,7 @@ import * as React from "react";
 import { Home, User, Settings, Search, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "@/app/login/actions";
+import { signOut, useSession } from "next-auth/react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,7 +21,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { UserAvatar } from "@/components/user-avatar";
-import { createClient } from "@/utils/supabase/client";
 
 const menuItems = [
   {
@@ -54,7 +53,7 @@ function AppSidebar({ user }) {
   React.useEffect(() => {
     const fetchFullName = async () => {
       if (!user?.id) return;
-      const supabase = createClient();
+      const supabase = await createClient();
       const { data } = await supabase
         .from("user")
         .select("full_name")
@@ -138,8 +137,10 @@ function AppSidebar({ user }) {
                   <div className="flex items-center gap-2">
                     <UserAvatar fullName={fullName} profilePictureUrl={profilePictureUrl} />
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">{fullName || "Account"}</span>
-                      <span className="truncate text-xs">{user.email}</span>
+                      <span className="truncate font-semibold">
+                        {fullName || "Account"}
+                      </span>
+                      <span className="truncate text-xs">{user.email || ""}</span>
                     </div>
                   </div>
                 </SidebarMenuButton>
@@ -147,7 +148,7 @@ function AppSidebar({ user }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   size="md"
-                  onClick={() => signOut()}
+                  onClick={() => signOut({ callbackUrl: "/login" })}
                   tooltip="Sign out"
                   className="bg-primary text-primary-foreground hover:bg-primary/90 justify-center"
                 >
@@ -205,10 +206,13 @@ function BottomNav() {
 }
 
 export function AppHeader({ children, user }) {
+  const { data: session } = useSession();
+  const resolvedUser = user || session?.user;
+
   return (
     <SidebarProvider>
       <div className="hidden md:block">
-        <AppSidebar user={user} />
+        <AppSidebar user={resolvedUser} />
       </div>
       <SidebarInset>
         <main className="flex flex-1 flex-col pb-16 md:pb-0">

@@ -5,7 +5,6 @@ import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { UserAvatar } from "@/components/user-avatar"
-import { createClient } from "@/utils/supabase/client"
 
 export function UserSelector({ value, onValueChange, disabled, currentUserName, currentUserId }) {
   const [users, setUsers] = React.useState([])
@@ -44,38 +43,14 @@ export function UserSelector({ value, onValueChange, disabled, currentUserName, 
 
   const fetchUsers = async () => {
     try {
-      const supabase = createClient()
+      const response = await fetch("/api/users")
+      const result = await response.json()
 
-      // Fetch users from user table
-      const { data, error } = await supabase
-        .from("user")
-        .select(`
-          id,
-          full_name,
-          email,
-          user_type,
-          faculty:faculty_id (
-            id,
-            name,
-            abbreviation,
-            color
-          )
-        `)
-        .order("full_name", { ascending: true })
-
-      if (error) {
-        console.error("Error fetching users:", error)
-        console.error("Error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
-        setUsers([])
-      } else {
-        console.log("Successfully fetched users:", data)
-        setUsers(data || [])
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to fetch users")
       }
+
+      setUsers(result.data || [])
     } catch (error) {
       console.error("Error fetching users:", error)
       setUsers([])

@@ -1,40 +1,28 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { signIn } from "./actions"
+import { signIn } from "next-auth/react"
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = React.useState("")
-  const [password, setPassword] = React.useState("")
-  const [error, setError] = React.useState("")
-  const [isLoading, setIsLoading] = React.useState(false)
+  const searchParams = useSearchParams()
+  const [isLoadingHtwg, setIsLoadingHtwg] = React.useState(false)
+  const [isLoadingTest, setIsLoadingTest] = React.useState(false)
+  const errorParam = searchParams.get("error")
+  const errorMessage = errorParam
+    ? "Sign in failed. Please use your HTWG account."
+    : ""
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+  const handleSignIn = async () => {
+    setIsLoadingHtwg(true)
+    await signIn("htwg-oidc", { callbackUrl: "http://localhost:3000" })
+  }
 
-    try {
-      const result = await signIn({ email, password })
-
-      if (result?.error) {
-        setError("Something went wrong. Please check your credentials.")
-        setIsLoading(false)
-        return
-      }
-
-      router.push("/")
-      router.refresh()
-    } catch (err) {
-      setError("Something went wrong. Please try again.")
-      setIsLoading(false)
-    }
+  const handleTestSignIn = async () => {
+    setIsLoadingTest(true)
+    await signIn("htwg-oidc-test", { callbackUrl: "http://localhost:3000" })
   }
 
   return (
@@ -43,42 +31,31 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Code with Heart</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Sign in to your account
+            Sign in with your HTWG account
           </p>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@htwg-konstanz.de"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
-            </Button>
-          </form>
-
-          {error && (
+        <CardContent className="space-y-4">
+          <Button
+            type="button"
+            className="w-full"
+            disabled={isLoadingHtwg}
+            onClick={handleSignIn}
+          >
+            {isLoadingHtwg ? "Redirecting..." : "Sign in"}
+          </Button>
+          <Button
+            type="button"
+            className="w-full"
+            disabled={isLoadingTest}
+            onClick={handleTestSignIn}
+          >
+            {isLoadingTest ? "Redirecting..." : "Sign in (test)"}
+          </Button>
+          {errorMessage && (
             <div className="mt-4 p-3 bg-destructive/10 border border-destructive rounded-md">
-              <p className="text-xs text-destructive text-center">{error}</p>
+              <p className="text-xs text-destructive text-center">
+                {errorMessage}
+              </p>
             </div>
           )}
         </CardContent>

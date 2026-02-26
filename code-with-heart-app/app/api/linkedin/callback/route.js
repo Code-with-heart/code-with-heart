@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
 import { exchangeCodeForToken, fetchLinkedInProfile } from '@/utils/linkedin';
+import { createClient } from '@/utils/supabase/server';
 
 export async function GET(req) {
   const url = new URL(req.url);

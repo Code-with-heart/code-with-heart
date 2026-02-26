@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import { MessageSquare } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FeedbackForm } from "@/components/feedback-form";
 import { UserAvatar } from "@/components/user-avatar";
-import { createClient } from "@/utils/supabase/client";
 
 export default function HomePage() {
   const [feedback, setFeedback] = React.useState([]);
@@ -16,36 +16,34 @@ export default function HomePage() {
   const [currentUser, setCurrentUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const { data: session } = useSession();
 
   React.useEffect(() => {
-    fetchCurrentUser();
     fetchFaculties();
     fetchPublishedFeedback();
   }, []);
 
+  React.useEffect(() => {
+    if (session?.user?.id) {
+      fetchCurrentUser();
+    } else {
+      setCurrentUser(null);
+      setCurrentUserFaculty(null);
+    }
+  }, [session?.user?.id]);
+
   const fetchCurrentUser = async () => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const response = await fetch("/api/users/me");
+      const result = await response.json();
 
-      if (user) {
-        setCurrentUser(user);
-        // Fetch user's faculty info
-        const { data: userData, error: userError } = await supabase
-          .from("user")
-          .select(`
-            faculty:faculty_id (
-              id,
-              name,
-              abbreviation
-            )
-          `)
-          .eq("id", user.id)
-          .single();
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to load user");
+      }
 
-        if (!userError && userData) {
-          setCurrentUserFaculty(userData.faculty);
-        }
+      if (result?.data) {
+        setCurrentUser(result.data);
+        setCurrentUserFaculty(result.data.faculty || null);
       }
     } catch (err) {
       console.error("Error fetching current user:", err);
@@ -54,15 +52,14 @@ export default function HomePage() {
 
   const fetchFaculties = async () => {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("faculty")
-        .select("id, name, abbreviation, color")
-        .order("name");
+      const response = await fetch("/api/faculties");
+      const result = await response.json();
 
-      if (!error) {
-        setFaculties(data || []);
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to load faculties");
       }
+
+      setFaculties(result.data || []);
     } catch (err) {
       console.error("Error fetching faculties:", err);
     }
@@ -72,74 +69,19 @@ export default function HomePage() {
     try {
       setLoading(true);
       setError("");
-      const supabase = createClient();
+      const response = await fetch("/api/feedback/published");
+      const result = await response.json();
 
-      // Fetch feedback where status is "delivered" OR "published" AND is_published is true
-      const { data: feedbackData, error: fetchError } = await supabase
-        .from("feedback")
-        .select(`
-          id,
-          original_text,
-          modified_text,
-          status,
-          is_published,
-          created_at,
-          published_at,
-          sender_id,
-          recipient_id
-        `)
-        .eq("is_published", true)
-        .in("status", ["published"])
-        .order("published_at", { ascending: false, nullsLast: true })
-        .order("created_at", { ascending: false });
-
-      if (fetchError) {
-        throw fetchError;
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to load feedback");
       }
 
-      // Fetch sender and recipient information
-      const allUserIds = new Set();
-      (feedbackData || []).forEach(fb => {
-        allUserIds.add(fb.sender_id);
-        if (fb.recipient_id) allUserIds.add(fb.recipient_id);
-      });
-
-      let usersMap = new Map();
-      
-      if (allUserIds.size > 0) {
-        const { data: usersData, error: usersError } = await supabase
-          .from("user")
-          .select(`
-            id,
-            full_name,
-            email,
-            faculty:faculty_id (
-              id,
-              name,
-              abbreviation,
-              color
-            )
-          `)
-          .in("id", Array.from(allUserIds));
-
-        if (usersError) {
-          console.warn("Error fetching user information:", usersError);
-        } else {
-          usersMap = new Map((usersData || []).map(u => [u.id, u]));
-        }
-      }
-
-      // Combine feedback with user data
-      const data = (feedbackData || []).map(fb => ({
-        ...fb,
-        sender: usersMap.get(fb.sender_id) || null,
-        recipient: usersMap.get(fb.recipient_id) || null,
-      }));
-
-      setFeedback(data || []);
+      setFeedback(result.data || []);
     } catch (err) {
       console.error("Error fetching published feedback:", err);
-      setError(`Failed to load feedback: ${err.message || "An unexpected error occurred. Please try again."}`);
+      setError(
+        `Failed to load feedback: ${err.message || "An unexpected error occurred. Please try again."}`
+      );
     } finally {
       setLoading(false);
     }
@@ -218,7 +160,11 @@ export default function HomePage() {
       {currentUser ? (
         <div className="w-full bg-muted/20 sticky top-0 z-10">
           <div className="container max-w-3xl mx-auto px-4 py-3">
-            <FeedbackForm onSubmitSuccess={fetchPublishedFeedback} userId={currentUser.id} />
+            <FeedbackForm
+              onSubmitSuccess={fetchPublishedFeedback}
+              userId={currentUser.id}
+              currentUserName={currentUser.full_name}
+            />
           </div>
         </div>
       ) : (
