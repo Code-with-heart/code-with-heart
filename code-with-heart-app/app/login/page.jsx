@@ -43,7 +43,6 @@ export default function LoginPage() {
           >
             {isLoadingHtwg ? "Redirecting..." : "Sign in"}
           </Button>
-          {process.env.NODE_ENV === "development" && (
           <Button
             type="button"
             className="w-full"
@@ -52,8 +51,6 @@ export default function LoginPage() {
           >
             {isLoadingTest ? "Redirecting..." : "Sign in (test)"}
           </Button>
-          )}
-
           {errorMessage && (
             <div className="mt-4 p-3 bg-destructive/10 border border-destructive rounded-md">
               <p className="text-xs text-destructive text-center">
