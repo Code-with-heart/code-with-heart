@@ -6,15 +6,10 @@ import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { UserAvatar } from "@/components/user-avatar";
 import { EditRejectedFeedbackDialog } from "@/components/edit-rejected-feedback-dialog";
+import { LinkedInShareDialog } from "@/components/linkedin-share-dialog";
 
 export default function ProfilePage() {
   const [currentUser, setCurrentUser] = React.useState(null);
@@ -31,6 +26,8 @@ export default function ProfilePage() {
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [feedbackToEdit, setFeedbackToEdit] = React.useState(null);
   const { data: session } = useSession();
+  const [linkedInShareDialogOpen, setLinkedInShareDialogOpen] = React.useState(false);
+  const [feedbackToShare, setFeedbackToShare] = React.useState(null);
 
   React.useEffect(() => {
     if (session?.user?.id) {
@@ -111,7 +108,7 @@ export default function ProfilePage() {
       setDeleteDialogOpen(false);
       setFeedbackToDelete(null);
     } finally {
-      setDeletingIds(prev => {
+      setDeletingIds((prev) => {
         const next = new Set(prev);
         next.delete(feedbackToDelete?.id);
         return next;
@@ -156,12 +153,21 @@ export default function ProfilePage() {
       console.error("Error updating feedback:", err);
       setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
-      setUpdatingIds(prev => {
+      setUpdatingIds((prev) => {
         const next = new Set(prev);
         next.delete(feedbackId);
         return next;
       });
     }
+  };
+
+  const handleShareToLinkedIn = (feedbackItem) => {
+    setFeedbackToShare(feedbackItem);
+    setLinkedInShareDialogOpen(true);
+  };
+
+  const handleLinkedInShareComplete = (_feedbackId) => {
+    // Feedback publish status is managed separately via the Publish button
   };
 
   const formatDate = (dateString) => {
@@ -182,36 +188,27 @@ export default function ProfilePage() {
 
     // First apply the category filter
     if (filter === "received") {
-      feedbackList = receivedFeedback.map(fb => ({ ...fb, type: "received" }));
+      feedbackList = receivedFeedback.map((fb) => ({ ...fb, type: "received" }));
     } else if (filter === "sent") {
-      feedbackList = sentFeedback.filter(fb => fb.status !== "rejected").map(fb => ({ ...fb, type: "sent" }));
+      feedbackList = sentFeedback.filter((fb) => fb.status !== "rejected").map((fb) => ({ ...fb, type: "sent" }));
     } else if (filter === "rejected") {
-      feedbackList = sentFeedback.filter(fb => fb.status === "rejected").map(fb => ({ ...fb, type: "rejected" }));
+      feedbackList = sentFeedback.filter((fb) => fb.status === "rejected").map((fb) => ({ ...fb, type: "rejected" }));
     } else {
       // "all" - combine both
-      feedbackList = [
-        ...receivedFeedback.map(fb => ({ ...fb, type: "received" })),
-        ...sentFeedback.map(fb => ({ ...fb, type: "sent" }))
-      ];
+      feedbackList = [...receivedFeedback.map((fb) => ({ ...fb, type: "received" })), ...sentFeedback.map((fb) => ({ ...fb, type: "sent" }))];
     }
 
     // Then apply the search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      feedbackList = feedbackList.filter(item => {
+      feedbackList = feedbackList.filter((item) => {
         const text = (item.modified_text || item.original_text || "").toLowerCase();
         const senderName = (item.sender?.full_name || "").toLowerCase();
         const recipientName = (item.recipient?.full_name || "").toLowerCase();
         const senderEmail = (item.sender?.email || "").toLowerCase();
         const recipientEmail = (item.recipient?.email || "").toLowerCase();
 
-        return (
-          text.includes(query) ||
-          senderName.includes(query) ||
-          recipientName.includes(query) ||
-          senderEmail.includes(query) ||
-          recipientEmail.includes(query)
-        );
+        return text.includes(query) || senderName.includes(query) || recipientName.includes(query) || senderEmail.includes(query) || recipientEmail.includes(query);
       });
     }
 
@@ -234,10 +231,19 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">My Profile</h1>
-        <p className="text-muted-foreground">
-          View and manage your feedback
-        </p>
+        <div className="flex items-center gap-4 mb-4">
+          {currentUser && (
+            <UserAvatar
+              fullName={currentUser.profile?.full_name || currentUser.user_metadata?.full_name || currentUser.email}
+              profilePictureUrl={currentUser.profile?.profile_picture_url}
+              size="large"
+            />
+          )}
+          <div>
+            <h1 className="text-3xl font-bold mb-2">My Profile</h1>
+            <p className="text-muted-foreground">View and manage your feedback</p>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -264,33 +270,17 @@ export default function ProfilePage() {
 
       {/* Filter Buttons */}
       <div className="mb-6 flex flex-wrap gap-2">
-        <Button
-          variant={filter === "all" ? "default" : "outline"}
-          onClick={() => setFilter("all")}
-          className="min-w-[100px]"
-        >
+        <Button variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")} className="min-w-[100px]">
           All ({receivedFeedback.length + sentFeedback.length})
         </Button>
-        <Button
-          variant={filter === "received" ? "default" : "outline"}
-          onClick={() => setFilter("received")}
-          className="min-w-[100px]"
-        >
+        <Button variant={filter === "received" ? "default" : "outline"} onClick={() => setFilter("received")} className="min-w-[100px]">
           Received ({receivedFeedback.length})
         </Button>
-        <Button
-          variant={filter === "sent" ? "default" : "outline"}
-          onClick={() => setFilter("sent")}
-          className="min-w-[100px]"
-        >
-          Sent ({sentFeedback.filter(f => f.status !== "rejected").length})
+        <Button variant={filter === "sent" ? "default" : "outline"} onClick={() => setFilter("sent")} className="min-w-[100px]">
+          Sent ({sentFeedback.filter((f) => f.status !== "rejected").length})
         </Button>
-        <Button
-          variant={filter === "rejected" ? "destructive" : "outline"}
-          onClick={() => setFilter("rejected")}
-          className="min-w-[100px]"
-        >
-          Rejected ({sentFeedback.filter(f => f.status === "rejected").length})
+        <Button variant={filter === "rejected" ? "destructive" : "outline"} onClick={() => setFilter("rejected")} className="min-w-[100px]">
+          Rejected ({sentFeedback.filter((f) => f.status === "rejected").length})
         </Button>
       </div>
 
@@ -298,7 +288,7 @@ export default function ProfilePage() {
       {searchQuery.trim() && (
         <div className="mb-4">
           <p className="text-sm text-muted-foreground">
-            Found {filteredFeedback.length} result{filteredFeedback.length !== 1 ? 's' : ''}
+            Found {filteredFeedback.length} result{filteredFeedback.length !== 1 ? "s" : ""}
             {searchQuery.trim() && ` for "${searchQuery}"`}
           </p>
         </div>
@@ -312,12 +302,8 @@ export default function ProfilePage() {
               {searchQuery.trim() ? (
                 <>
                   <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    No feedback found matching your search.
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Try adjusting your search terms or filters
-                  </p>
+                  <p className="text-muted-foreground">No feedback found matching your search.</p>
+                  <p className="text-sm text-muted-foreground mt-2">Try adjusting your search terms or filters</p>
                 </>
               ) : (
                 <p className="text-muted-foreground">
@@ -333,25 +319,13 @@ export default function ProfilePage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredFeedback.map((item) => (
-            <Card
-              key={item.id}
-              className="flex flex-col"
-            >
+            <Card key={item.id} className="flex flex-col">
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <CardTitle className="text-base mb-1">
-                      {item.type === "received"
-                        ? `From: ${item.sender?.full_name || "Unknown User"}`
-                        : `To: ${item.recipient?.full_name || "Unknown User"}`
-                      }
+                      {item.type === "received" ? `From: ${item.sender?.full_name || "Unknown User"}` : `To: ${item.recipient?.full_name || "Unknown User"}`}
                     </CardTitle>
-                    {/* <p className="text-xs text-muted-foreground">
-                      {item.type === "received"
-                        ? `To: ${item.recipient?.full_name || "Unknown User"}`
-                        : `From: ${item.sender?.full_name || "Unknown User"}`
-                      }
-                    </p> */}
                   </div>
                   {item.type === "received" && item.is_published && (
                     <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md">
@@ -359,11 +333,7 @@ export default function ProfilePage() {
                       <span className="text-xs font-medium">Published</span>
                     </div>
                   )}
-                  {item.type === "sent" && (
-                    <span className="px-2 py-1 bg-muted text-muted-foreground rounded-md text-xs font-medium">
-                      {item.status}
-                    </span>
-                  )}
+                  {item.type === "sent" && <span className="px-2 py-1 bg-muted text-muted-foreground rounded-md text-xs font-medium">{item.status}</span>}
                 </div>
               </CardHeader>
               <CardContent className="flex-1">
@@ -373,19 +343,13 @@ export default function ProfilePage() {
                     <div className="flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs font-semibold text-destructive mb-1">
-                          Requires Revision
-                        </p>
-                        <p className="text-xs text-destructive/90">
-                          {item.ai_feedback}
-                        </p>
+                        <p className="text-xs font-semibold text-destructive mb-1">Requires Revision</p>
+                        <p className="text-xs text-destructive/90">{item.ai_feedback}</p>
                       </div>
                     </div>
                   </div>
                 )}
-                <p className="text-sm whitespace-pre-wrap mb-4">
-                  {item.modified_text || item.original_text}
-                </p>
+                <p className="text-sm whitespace-pre-wrap mb-4">{item.modified_text || item.original_text}</p>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-4">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -403,34 +367,35 @@ export default function ProfilePage() {
                       <span>Published by recipient</span>
                     </div>
                   )}
-                  {item.type === "received" && (
-                    <span className="px-2 py-0.5 bg-muted rounded-md">
-                      {item.status}
-                    </span>
-                  )}
+                  {item.type === "received" && <span className="px-2 py-0.5 bg-muted rounded-md">{item.status}</span>}
                 </div>
                 {item.type === "received" && (
                   <div className="flex items-end justify-between gap-2 mt-auto pt-4 border-t">
-                    <Button
-                      variant={item.is_published ? "outline" : "default"}
-                      size="sm"
-                      onClick={() => handleTogglePublish(item.id, item.is_published)}
-                      disabled={updatingIds.has(item.id) || deletingIds.has(item.id)}
-                    >
-                      {updatingIds.has(item.id) ? (
-                        "Updating..."
-                      ) : item.is_published ? (
-                        <>
-                          <Lock className="h-4 w-4 mr-2" />
-                          Unpublish
-                        </>
-                      ) : (
-                        <>
-                          <Globe className="h-4 w-4 mr-2" />
-                          Publish
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={item.is_published ? "outline" : "default"}
+                        size="sm"
+                        onClick={() => handleTogglePublish(item.id, item.is_published)}
+                        disabled={updatingIds.has(item.id) || deletingIds.has(item.id)}
+                      >
+                        {updatingIds.has(item.id) ? (
+                          "Updating..."
+                        ) : item.is_published ? (
+                          <>
+                            <Lock className="h-4 w-4 mr-2" />
+                            Unpublish
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="h-4 w-4 mr-2" />
+                            Publish
+                          </>
+                        )}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleShareToLinkedIn(item)} disabled={updatingIds.has(item.id) || deletingIds.has(item.id)}>
+                        Share to LinkedIn
+                      </Button>
+                    </div>
                     <Button
                       variant="destructive"
                       size="sm"
@@ -467,16 +432,12 @@ export default function ProfilePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Feedback</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this feedback? This action cannot be undone.
-            </DialogDescription>
+            <DialogDescription>Are you sure you want to delete this feedback? This action cannot be undone.</DialogDescription>
           </DialogHeader>
           {feedbackToDelete && (
             <div className="py-4">
               <p className="text-sm text-muted-foreground mb-2">From: {feedbackToDelete.sender?.full_name || "Unknown User"}</p>
-              <p className="text-sm line-clamp-3">
-                {feedbackToDelete.modified_text || feedbackToDelete.original_text}
-              </p>
+              <p className="text-sm line-clamp-3">{feedbackToDelete.modified_text || feedbackToDelete.original_text}</p>
             </div>
           )}
           <DialogFooter>
@@ -490,11 +451,7 @@ export default function ProfilePage() {
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deletingIds.has(feedbackToDelete?.id)}
-            >
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deletingIds.has(feedbackToDelete?.id)}>
               {deletingIds.has(feedbackToDelete?.id) ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
@@ -511,7 +468,8 @@ export default function ProfilePage() {
           }
         }}
       />
+
+      <LinkedInShareDialog open={linkedInShareDialogOpen} onOpenChange={setLinkedInShareDialogOpen} feedback={feedbackToShare} onShare={handleLinkedInShareComplete} />
     </div>
   );
 }
-
