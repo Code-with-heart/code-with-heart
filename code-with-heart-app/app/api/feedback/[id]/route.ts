@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { createAdminClient } from "@/utils/supabase/admin";
+import {  createClient } from "@/utils/supabase/server";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
@@ -14,17 +14,17 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   const body = await request.json();
   const action = body?.action;
 
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   if (action === "toggle_publish") {
     if (typeof body?.isPublished !== "boolean") {
       return NextResponse.json(
         { error: "isPublished must be a boolean." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -55,7 +55,7 @@ export async function PATCH(
     if (!text) {
       return NextResponse.json(
         { error: "Feedback text is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -84,7 +84,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
@@ -93,8 +93,8 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = params;
-  const supabase = createAdminClient();
+  const { id } = await params;
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from("feedback")

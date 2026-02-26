@@ -111,7 +111,7 @@ export default async function Page() {
 import { createClient } from "@/utils/supabase/client";
 
 export default function ClientComponent() {
-  const supabase = createClient();
+  const supabase = await createClient();
   // ...
 }
 ```

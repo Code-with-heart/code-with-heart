@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient } from "@/utils/supabase/server";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("feedback")
     .insert({

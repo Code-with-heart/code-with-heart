@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient } from "@/utils/supabase/server";
 
 export async function GET() {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   const { data: feedbackData, error: feedbackError } = await supabase
     .from("feedback")
     .select(
@@ -10,7 +10,7 @@ export async function GET() {
     )
     .eq("is_published", true)
     .eq("status", "published")
-    .order("published_at", { ascending: false, nullsLast: true })
+    .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   if (feedbackError) {

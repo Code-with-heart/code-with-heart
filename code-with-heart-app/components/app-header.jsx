@@ -53,7 +53,7 @@ function AppSidebar({ user }) {
   React.useEffect(() => {
     const fetchFullName = async () => {
       if (!user?.id) return;
-      const supabase = createClient();
+      const supabase = await createClient();
       const { data } = await supabase
         .from("user")
         .select("full_name")

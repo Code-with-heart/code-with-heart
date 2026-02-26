@@ -1,5 +1,5 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
-import { createAdminClient } from "../../../../utils/supabase/admin";
+import { createClient } from "../../../../utils/supabase/server";
 
 const allowedEmailDomains = ["htwg-konstanz.de", "stud.htwg-konstanz.de"];
 
@@ -10,7 +10,7 @@ const isAllowedEmail = (email?: string | null) => {
 };
 
 const upsertUserFromProfile = async (profile: Record<string, any>) => {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   const oidcSub = profile?.sub;
   const email = profile?.email?.toLowerCase?.() || profile?.email;
   const fullName = profile?.name || profile?.preferred_username || email || "HTWG User";
