@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 function prettifyFeedbackText(feedback) {
   const senderName = feedback?.sender?.full_name || feedback?.sender?.email || "someone";
@@ -54,6 +55,7 @@ export function LinkedInShareDialog({ open, onOpenChange, feedback, onShare }) {
       if (!res.ok) {
         setError(data.error || "Failed to share to LinkedIn");
       } else {
+        toast.success("Successfully shared to LinkedIn!");
         onShare?.(feedback.id);
         onOpenChange(false);
       }
