@@ -49,6 +49,7 @@ const menuItems = [
 function AppSidebar({ user }) {
   const pathname = usePathname();
   const [fullName, setFullName] = React.useState("");
+  const [profilePictureUrl, setProfilePictureUrl] = React.useState(null);
 
   React.useEffect(() => {
     const fetchFullName = async () => {
@@ -64,6 +65,23 @@ function AppSidebar({ user }) {
       }
     };
     fetchFullName();
+  }, [user?.id]);
+
+  React.useEffect(() => {
+    const fetchLinkedInPicture = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await fetch("/api/linkedin/status");
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.connected && json.account?.picture) {
+          setProfilePictureUrl(json.account.picture);
+        }
+      } catch (e) {
+        // silently ignore
+      }
+    };
+    fetchLinkedInPicture();
   }, [user?.id]);
 
   return (
@@ -118,7 +136,7 @@ function AppSidebar({ user }) {
               <SidebarMenuItem>
                 <SidebarMenuButton size="lg" asChild>
                   <div className="flex items-center gap-2">
-                    <UserAvatar fullName={fullName} />
+                    <UserAvatar fullName={fullName} profilePictureUrl={profilePictureUrl} />
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">{fullName || "Account"}</span>
                       <span className="truncate text-xs">{user.email}</span>
