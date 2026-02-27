@@ -148,10 +148,10 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ profile }) {
+      console.log("Signing in user with profile:", profile);
       if (!isAllowedEmail(profile?.email)) {
         return false;
       }
-      console.log("Signing in user with profile:", profile);
       const userRecord = await upsertUserFromProfile(
         profile as Record<string, any>,
       );
