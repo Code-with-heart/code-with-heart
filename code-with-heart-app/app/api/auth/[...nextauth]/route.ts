@@ -125,7 +125,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.HTWG_TEST_OIDC_CLIENT_SECRET,
       authorization: { 
         url: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/authorize",
-        params: { scope: "openid email profile" } },
+        params: { scope: "openid email" } },
       issuer: "https://idp-test.htwg-konstanz.de",
       token: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/token",
       jwks_endpoint: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/keyset",
