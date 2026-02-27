@@ -133,6 +133,8 @@ export const authOptions: NextAuthOptions = {
       jwks_endpoint:
         "https://idp-test.htwg-konstanz.de/idp/profile/oidc/keyset",
       userinfo: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/userinfo",
+      idToken: false,
+      checks: ["pkce", "state"],
       profile(profile, tokens) {
         console.log("Test OIDC provider profile:", profile);
         console.log("Test OIDC provider tokens:", tokens);
