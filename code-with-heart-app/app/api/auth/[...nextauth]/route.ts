@@ -13,7 +13,8 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
   const supabase = await createClient();
   const oidcSub = profile?.sub;
   const email = profile?.email?.toLowerCase?.() || profile?.email;
-  const fullName = profile?.name || profile?.preferred_username || email || "HTWG User";
+  const fullName =
+    profile?.name || profile?.preferred_username || email || "HTWG User";
 
   if (!oidcSub || !email) {
     return null;
@@ -106,7 +107,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.HTWG_OIDC_CLIENT_SECRET,
       authorization: { params: { scope: "openid email profile" } },
       idToken: true,
-      
+
       checks: ["pkce", "state"],
       profile(profile) {
         return {
@@ -123,16 +124,19 @@ export const authOptions: NextAuthOptions = {
       type: "oauth",
       clientId: process.env.HTWG_TEST_OIDC_CLIENT_ID,
       clientSecret: process.env.HTWG_TEST_OIDC_CLIENT_SECRET,
-      authorization: { 
+      authorization: {
         url: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/authorize",
-        params: { scope: "openid email" } },
+        params: { scope: "openid email profile" },
+      },
       issuer: "https://idp-test.htwg-konstanz.de",
       token: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/token",
-      jwks_endpoint: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/keyset",
+      jwks_endpoint:
+        "https://idp-test.htwg-konstanz.de/idp/profile/oidc/keyset",
       idToken: true,
       checks: ["pkce", "state"],
-      profile(profile) {
-        console.log("Test OIDC profile:", profile);
+      profile(profile, tokens) {
+        console.log("Test OIDC provider profile:", profile);
+        console.log("Test OIDC provider tokens:", tokens);
         return profile;
       },
     },
