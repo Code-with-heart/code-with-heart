@@ -132,6 +132,7 @@ export const authOptions: NextAuthOptions = {
       token: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/token",
       jwks_endpoint:
         "https://idp-test.htwg-konstanz.de/idp/profile/oidc/keyset",
+      userinfo: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/userinfo",
       idToken: true,
       checks: ["pkce", "state"],
       profile(profile, tokens) {
