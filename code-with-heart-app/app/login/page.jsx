@@ -17,12 +17,12 @@ export default function LoginPage() {
 
   const handleSignIn = async () => {
     setIsLoadingHtwg(true)
-    await signIn("htwg-oidc", { callbackUrl: "http://localhost:3000" })
+    await signIn("htwg-oidc")
   }
 
   const handleTestSignIn = async () => {
     setIsLoadingTest(true)
-    await signIn("htwg-oidc-test", { callbackUrl: "http://localhost:3000" })
+    await signIn("htwg-oidc-test")
   }
 
   return (

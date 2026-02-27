@@ -93,7 +93,6 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
 };
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
   },
@@ -107,6 +106,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.HTWG_OIDC_CLIENT_SECRET,
       authorization: { params: { scope: "openid email profile" } },
       idToken: true,
+      
       checks: ["pkce", "state"],
       profile(profile) {
         return {
@@ -121,14 +121,18 @@ export const authOptions: NextAuthOptions = {
       id: "htwg-oidc-test",
       name: "HTWG OIDC Test",
       type: "oauth",
-      wellKnown:
-        "https://idp-test.htwg-konstanz.de/idp/profile/oidc/configuration",
       clientId: process.env.HTWG_TEST_OIDC_CLIENT_ID,
       clientSecret: process.env.HTWG_TEST_OIDC_CLIENT_SECRET,
-      authorization: { params: { scope: "openid email profile" } },
+      authorization: { 
+        url: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/authorize",
+        params: { scope: "openid email profile" } },
+      issuer: "https://idp-test.htwg-konstanz.de",
+      token: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/token",
+      jwks_endpoint: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/keyset",
       idToken: true,
       checks: ["pkce", "state"],
       profile(profile) {
+        console.log("Test OIDC profile:", profile);
         return profile;
       },
     },
@@ -138,12 +142,14 @@ export const authOptions: NextAuthOptions = {
       if (!isAllowedEmail(profile?.email)) {
         return false;
       }
+      console.log("Signing in user with profile:", profile);
       const userRecord = await upsertUserFromProfile(
         profile as Record<string, any>,
       );
       return Boolean(userRecord?.id);
     },
     async jwt({ token, account, profile }) {
+      console.log("JWT callback - account:", account, "profile:", profile);
       if (account && profile) {
         const userRecord = await upsertUserFromProfile(
           profile as Record<string, any>,
@@ -159,6 +165,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      console.log("Session callback - token:", token);
       if (session.user) {
         session.user.id = token.userId as string | undefined;
         session.user.oidcSub = token.oidcSub as string | undefined;
