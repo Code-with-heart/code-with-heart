@@ -135,10 +135,14 @@ export const authOptions: NextAuthOptions = {
       userinfo: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/userinfo",
       idToken: false,
       checks: ["pkce", "state"],
-      profile(profile, tokens) {
+      profile(profile) {
         console.log("Test OIDC provider profile:", profile);
-        console.log("Test OIDC provider tokens:", tokens);
-        return profile;
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+        };
       },
     },
   ],
