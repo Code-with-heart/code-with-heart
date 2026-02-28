@@ -10,6 +10,7 @@ const isAllowedEmail = (email?: string | null) => {
 };
 
 const upsertUserFromProfile = async (profile: Record<string, any>) => {
+  console.log("Upserting user from profile");
   const supabase = await createClient();
   const oidcSub = profile?.sub;
   const email = profile?.email?.toLowerCase?.() || profile?.email;
@@ -150,11 +151,14 @@ export const authOptions: NextAuthOptions = {
     async signIn({ profile }) {
       console.log("Signing in user with profile:", profile);
       if (!isAllowedEmail(profile?.email)) {
+        console.log("Email domain not allowed for user:", profile?.email);
         return false;
       }
+      console.log("Email domain allowed for user:", profile?.email);
       const userRecord = await upsertUserFromProfile(
         profile as Record<string, any>,
       );
+
       return Boolean(userRecord?.id);
     },
     async jwt({ token, account, profile }) {
