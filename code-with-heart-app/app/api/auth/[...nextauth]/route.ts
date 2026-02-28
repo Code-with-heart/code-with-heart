@@ -106,17 +106,17 @@ export const authOptions: NextAuthOptions = {
       wellKnown: "https://idp.htwg-konstanz.de/idp/profile/oidc/configuration",
       clientId: process.env.HTWG_OIDC_CLIENT_ID,
       clientSecret: process.env.HTWG_OIDC_CLIENT_SECRET,
-      authorization: { 
-        params: { 
-          scope: "openid email profile", 
-          claims:  {
+      authorization: {
+        params: {
+          scope: "openid email profile",
+          claims: {
             id_token: {
               email: { essential: true },
               email_verified: { essential: true },
               name: { essential: true },
-            }
-          }
-        } 
+            },
+          },
+        },
       },
       idToken: true,
       checks: ["pkce", "state"],
@@ -137,7 +137,11 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.HTWG_TEST_OIDC_CLIENT_SECRET,
       authorization: {
         url: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/authorize",
-        params: { scope: "openid email profile" },
+        params: {
+          scope: "openid email profile",
+          claims:
+            "aud iss sub iat exp acr auth_time email email_verified address phone phone_number_verified name family_name given_name middle_name nickname preferred_username profile picture website gender birthdate zoneinfo locale updated_at",
+        },
       },
       issuer: "https://idp-test.htwg-konstanz.de",
       token: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/token",
