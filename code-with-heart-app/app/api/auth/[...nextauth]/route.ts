@@ -109,13 +109,6 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope: "openid email profile",
-          claims: {
-            id_token: {
-              email: { essential: true },
-              email_verified: { essential: true },
-              name: { essential: true },
-            },
-          },
         },
       },
       idToken: true,
@@ -139,8 +132,13 @@ export const authOptions: NextAuthOptions = {
         url: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/authorize",
         params: {
           scope: "openid email profile",
-          claims:
-            "aud iss sub iat exp acr auth_time email email_verified address phone phone_number_verified name family_name given_name middle_name nickname preferred_username profile picture website gender birthdate zoneinfo locale updated_at",
+          claims: {
+            id_token: {
+              email: { essential: true },
+              email_verified: { essential: true },
+              name: { essential: true },
+            },
+          },
         },
       },
       issuer: "https://idp-test.htwg-konstanz.de",
