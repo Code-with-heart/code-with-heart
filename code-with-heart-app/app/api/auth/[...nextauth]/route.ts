@@ -137,11 +137,11 @@ export const authOptions: NextAuthOptions = {
               email: { essential: true },
               email_verified: { essential: true },
               name: { essential: true },
-              nickname: { essential: false },
-              middle_name: { essential: false },
-              given_name: { essential: false },
-              family_name: { essential: false },
-              preferred_username: { essential: false },
+              nickname: { essential: true },
+              middle_name: { essential: true },
+              given_name: { essential: true },
+              family_name: { essential: true },
+              preferred_username: { essential: true },
               picture: { essential: true },
               birthdate: { essential: true },
               gender: { essential: true },
@@ -150,11 +150,11 @@ export const authOptions: NextAuthOptions = {
               email: { essential: true },
               email_verified: { essential: true },
               name: { essential: true },
-              nickname: { essential: false },
-              middle_name: { essential: false },
-              given_name: { essential: false },
-              family_name: { essential: false },
-              preferred_username: { essential: false },
+              nickname: { essential: true },
+              middle_name: { essential: true },
+              given_name: { essential: true },
+              family_name: { essential: true },
+              preferred_username: { essential: true },
               picture: { essential: true },
               birthdate: { essential: true },
               gender: { essential: true },
@@ -168,7 +168,6 @@ export const authOptions: NextAuthOptions = {
         "https://idp-test.htwg-konstanz.de/idp/profile/oidc/keyset",
       userinfo: "https://idp-test.htwg-konstanz.de/idp/profile/oidc/userinfo",
       idToken: true,
-      checks: ["pkce", "state"],
       profile(profile) {
         console.log("Test OIDC provider profile:", profile);
         return {
@@ -181,6 +180,7 @@ export const authOptions: NextAuthOptions = {
           preferred_username: profile.preferred_username,
         };
       },
+      
     },
   ],
   callbacks: {
