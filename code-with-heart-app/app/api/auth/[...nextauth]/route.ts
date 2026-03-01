@@ -143,6 +143,8 @@ export const authOptions: NextAuthOptions = {
               family_name: { essential: false },
               preferred_username: { essential: false },
               picture: { essential: true },
+              birthdate: { essential: true },
+              gender: { essential: true },
             },
           },
         },
@@ -156,7 +158,7 @@ export const authOptions: NextAuthOptions = {
       checks: ["pkce", "state"],
       profile(profile) {
         console.log("Test OIDC provider profile:", profile);
-        return { 
+        return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
