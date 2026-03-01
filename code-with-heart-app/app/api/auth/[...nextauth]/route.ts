@@ -154,12 +154,7 @@ export const authOptions: NextAuthOptions = {
       checks: ["pkce", "state"],
       profile(profile) {
         console.log("Test OIDC provider profile:", profile);
-        return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-        };
+        return { id: profile.sub };
       },
     },
   ],
