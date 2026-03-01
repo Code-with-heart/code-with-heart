@@ -135,29 +135,9 @@ export const authOptions: NextAuthOptions = {
           claims: {
             id_token: {
               email: { essential: true },
-              email_verified: { essential: true },
-              name: { essential: true },
-              nickname: { essential: true },
-              middle_name: { essential: true },
-              given_name: { essential: true },
-              family_name: { essential: true },
               preferred_username: { essential: true },
-              picture: { essential: true },
-              birthdate: { essential: true },
-              gender: { essential: true },
-            },
-            userinfo: {
-              email: { essential: true },
-              email_verified: { essential: true },
-              name: { essential: true },
-              nickname: { essential: true },
-              middle_name: { essential: true },
-              given_name: { essential: true },
-              family_name: { essential: true },
-              preferred_username: { essential: true },
-              picture: { essential: true },
-              birthdate: { essential: true },
-              gender: { essential: true },
+              given_name: { essential: false },
+              family_name: { essential: false },
             },
           },
         },
@@ -180,7 +160,6 @@ export const authOptions: NextAuthOptions = {
           preferred_username: profile.preferred_username,
         };
       },
-      
     },
   ],
   callbacks: {
