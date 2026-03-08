@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Home, User, Settings, Search, LogOut } from "lucide-react";
+import { Home, User, Settings, Search, LogOut, FileText, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -129,6 +129,29 @@ function AppSidebar({ user }) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <SidebarGroup>
+          <SidebarGroupLabel>Legal</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/tos"} tooltip="Terms of Service">
+                  <Link href="/tos">
+                    <FileText />
+                    <span>Terms of Service</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/privacy"} tooltip="Data Privacy">
+                  <Link href="/privacy">
+                    <ShieldCheck />
+                    <span>Data Privacy</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         <SidebarMenu>
           {user ? (
             <>
