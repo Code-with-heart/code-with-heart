@@ -203,8 +203,10 @@ export const authOptions: NextAuthOptions = {
         token.oidcSub = profile.sub;
         token.name = profile.name || token.name;
         token.email = profile.email || token.email;
-        token.consentPending =
-          !userRecord?.tos_accepted_at || !userRecord?.data_processing_accepted_at;
+        if (userRecord) {
+          token.consentPending =
+            !userRecord.tos_accepted_at || !userRecord.data_processing_accepted_at;
+        }
       }
       return token;
     },
