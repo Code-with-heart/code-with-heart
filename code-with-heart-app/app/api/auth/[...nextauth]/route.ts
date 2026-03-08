@@ -23,7 +23,7 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
 
   const { data: existingBySub, error: subError } = await supabase
     .from("user")
-    .select("id, oidc_sub")
+    .select("id, oidc_sub, tos_accepted_at, data_processing_accepted_at")
     .eq("oidc_sub", oidcSub)
     .maybeSingle();
 
@@ -37,7 +37,7 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
       .from("user")
       .update({ full_name: fullName, email })
       .eq("id", existingBySub.id)
-      .select("id, full_name, email")
+      .select("id, full_name, email, tos_accepted_at, data_processing_accepted_at")
       .single();
 
     if (error) {
@@ -50,7 +50,7 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
 
   const { data: existingByEmail, error: emailError } = await supabase
     .from("user")
-    .select("id, oidc_sub")
+    .select("id, oidc_sub, tos_accepted_at, data_processing_accepted_at")
     .eq("email", email)
     .maybeSingle();
 
@@ -64,7 +64,7 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
       .from("user")
       .update({ oidc_sub: oidcSub, full_name: fullName })
       .eq("id", existingByEmail.id)
-      .select("id, full_name, email")
+      .select("id, full_name, email, tos_accepted_at, data_processing_accepted_at")
       .single();
 
     if (error) {
@@ -75,6 +75,7 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
     return data ?? existingByEmail;
   }
 
+  // New user – create without consent timestamps; they will be collected on the consent page.
   const { data, error } = await supabase
     .from("user")
     .insert({
@@ -83,7 +84,7 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
       full_name: fullName,
       user_type: "Student",
     })
-    .select("id, full_name, email")
+    .select("id, full_name, email, tos_accepted_at, data_processing_accepted_at")
     .single();
 
   if (error) {
@@ -176,8 +177,21 @@ export const authOptions: NextAuthOptions = {
 
       return Boolean(userRecord?.id);
     },
-    async jwt({ token, account, profile }) {
-      console.log("JWT callback - account:", account, "profile:", profile);
+    async jwt({ token, account, profile, trigger }) {
+      console.log("JWT callback - account:", account, "profile:", profile, "trigger:", trigger);
+
+      // On session.update() call: re-fetch consent status from DB
+      if (trigger === "update" && token.userId) {
+        const supabase = await createClient();
+        const { data } = await supabase
+          .from("user")
+          .select("tos_accepted_at, data_processing_accepted_at")
+          .eq("id", token.userId)
+          .single();
+        token.consentPending = !data?.tos_accepted_at || !data?.data_processing_accepted_at;
+        return token;
+      }
+
       if (account && profile) {
         const userRecord = await upsertUserFromProfile(
           profile as Record<string, any>,
@@ -189,6 +203,8 @@ export const authOptions: NextAuthOptions = {
         token.oidcSub = profile.sub;
         token.name = profile.name || token.name;
         token.email = profile.email || token.email;
+        token.consentPending =
+          !userRecord?.tos_accepted_at || !userRecord?.data_processing_accepted_at;
       }
       return token;
     },
@@ -197,6 +213,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.userId as string | undefined;
         session.user.oidcSub = token.oidcSub as string | undefined;
+        session.user.consentPending = token.consentPending as boolean | undefined;
       }
       return session;
     },
