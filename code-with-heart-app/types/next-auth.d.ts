@@ -6,6 +6,11 @@ declare module "next-auth" {
       id?: string;
       oidcSub?: string;
       consentPending?: boolean;
+      pendingProfile?: {
+        oidcSub: string;
+        email: string;
+        name: string;
+      };
     } & DefaultSession["user"];
   }
 }
@@ -15,5 +20,10 @@ declare module "next-auth/jwt" {
     userId?: string;
     oidcSub?: string;
     consentPending?: boolean;
+    pendingProfile?: {
+      oidcSub: string;
+      email: string;
+      name: string;
+    };
   }
 }

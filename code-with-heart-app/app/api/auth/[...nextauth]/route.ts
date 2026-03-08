@@ -9,8 +9,12 @@ const isAllowedEmail = (email?: string | null) => {
   return Boolean(domain && allowedEmailDomains.includes(domain));
 };
 
-const upsertUserFromProfile = async (profile: Record<string, any>) => {
-  console.log("Upserting user from profile");
+/**
+ * Look up an existing user by oidc_sub or email.
+ * If found, updates name/email and links oidc_sub when needed.
+ * Does NOT create records for new users – creation is deferred to the consent step.
+ */
+const findAndUpdateExistingUser = async (profile: Record<string, any>) => {
   const supabase = await createClient();
   const oidcSub = profile?.sub;
   const email = profile?.email?.toLowerCase?.() || profile?.email;
@@ -75,24 +79,8 @@ const upsertUserFromProfile = async (profile: Record<string, any>) => {
     return data ?? existingByEmail;
   }
 
-  // New user – create without consent timestamps; they will be collected on the consent page.
-  const { data, error } = await supabase
-    .from("user")
-    .insert({
-      oidc_sub: oidcSub,
-      email,
-      full_name: fullName,
-      user_type: "Student",
-    })
-    .select("id, full_name, email, tos_accepted_at, data_processing_accepted_at")
-    .single();
-
-  if (error) {
-    console.error("Failed to create user from profile:", error);
-    return null;
-  }
-
-  return data ?? null;
+  // No existing user found – new user; record will be created after consent.
+  return null;
 };
 
 export const authOptions: NextAuthOptions = {
@@ -171,42 +159,52 @@ export const authOptions: NextAuthOptions = {
         return false;
       }
       console.log("Email domain allowed for user:", profile?.email);
-      const userRecord = await upsertUserFromProfile(
-        profile as Record<string, any>,
-      );
-
-      return Boolean(userRecord?.id);
+      // Allow sign-in for all valid HTWG emails.
+      // DB record creation for new users is deferred to the consent step.
+      return true;
     },
     async jwt({ token, account, profile, trigger }) {
       console.log("JWT callback - account:", account, "profile:", profile, "trigger:", trigger);
 
-      // On session.update() call: re-fetch consent status from DB
-      if (trigger === "update" && token.userId) {
-        const supabase = await createClient();
-        const { data } = await supabase
-          .from("user")
-          .select("tos_accepted_at, data_processing_accepted_at")
-          .eq("id", token.userId)
-          .single();
-        token.consentPending = !data?.tos_accepted_at || !data?.data_processing_accepted_at;
+      // On session.update() call: re-fetch user from DB (e.g. after consent)
+      if (trigger === "update") {
+        if (token.oidcSub) {
+          const supabase = await createClient();
+          const { data } = await supabase
+            .from("user")
+            .select("id, tos_accepted_at, data_processing_accepted_at")
+            .eq("oidc_sub", token.oidcSub as string)
+            .single();
+          if (data?.id) {
+            token.userId = data.id;
+            token.consentPending = !data.tos_accepted_at || !data.data_processing_accepted_at;
+            delete token.pendingProfile;
+          }
+        }
         return token;
       }
 
       if (account && profile) {
-        const userRecord = await upsertUserFromProfile(
-          profile as Record<string, any>,
-        );
-        if (!userRecord?.id) {
-          console.error("Unable to map OIDC profile to user record.");
-        }
-        token.userId = userRecord?.id || token.userId;
-        token.oidcSub = profile.sub;
-        token.name = profile.name || token.name;
-        token.email = profile.email || token.email;
-        if (userRecord) {
+        const p = profile as Record<string, any>;
+        const existingUser = await findAndUpdateExistingUser(p);
+
+        if (existingUser?.id) {
+          token.userId = existingUser.id;
           token.consentPending =
-            !userRecord.tos_accepted_at || !userRecord.data_processing_accepted_at;
+            !existingUser.tos_accepted_at || !existingUser.data_processing_accepted_at;
+        } else {
+          // New user – store profile in token, defer DB creation to consent
+          token.consentPending = true;
+          token.pendingProfile = {
+            oidcSub: p.sub,
+            email: p.email?.toLowerCase?.() || p.email,
+            name: p.name || p.preferred_username || p.email || "HTWG User",
+          };
         }
+
+        token.oidcSub = p.sub;
+        token.name = p.name || token.name;
+        token.email = p.email || token.email;
       }
       return token;
     },
@@ -216,6 +214,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.userId as string | undefined;
         session.user.oidcSub = token.oidcSub as string | undefined;
         session.user.consentPending = token.consentPending as boolean | undefined;
+        session.user.pendingProfile = token.pendingProfile;
       }
       return session;
     },

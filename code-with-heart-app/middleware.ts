@@ -7,14 +7,9 @@ export default withAuth(
     const isConsentPending = token?.consentPending === true
     const { pathname } = req.nextUrl
 
-    // Authenticated user with pending consent: redirect everything to /consent
-    if (isConsentPending && pathname !== "/consent") {
-      return NextResponse.redirect(new URL("/consent", req.url))
-    }
-
-    // Authenticated user who already consented: don't allow /consent page
-    if (!isConsentPending && pathname === "/consent") {
-      return NextResponse.redirect(new URL("/", req.url))
+    // Authenticated user with pending consent: redirect to /login to show consent dialog
+    if (isConsentPending && pathname !== "/login") {
+      return NextResponse.redirect(new URL("/login", req.url))
     }
 
     return NextResponse.next()
@@ -28,5 +23,5 @@ export default withAuth(
 
 // Protect specific routes with the middleware
 export const config = {
-  matcher: ["/profile", "/feedback", "/settings", "/search", "/consent"],
+  matcher: ["/profile", "/feedback", "/settings", "/search"],
 };
