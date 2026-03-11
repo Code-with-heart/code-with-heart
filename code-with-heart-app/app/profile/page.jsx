@@ -233,7 +233,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
           <div className="flex items-center gap-4">
             {currentUser && (
               <UserAvatar
@@ -249,20 +249,28 @@ export default function ProfilePage() {
           </div>
 
           {/* AI Feedback Summary teaser */}
-          {currentUser?.feedback_summary ? (
-            <div className="hidden sm:flex flex-col items-end max-w-xs xl:max-w-sm shrink-0">
+          {currentUser && (
+            <div className="flex flex-col sm:items-end sm:max-w-xs xl:max-w-sm sm:shrink-0">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">AI Summary</p>
-              <p className="text-sm text-right line-clamp-2 text-muted-foreground">
-                {currentUser.feedback_summary}
-              </p>
-              <button
-                onClick={() => setSummaryDialogOpen(true)}
-                className="mt-1 text-xs text-primary hover:underline font-medium"
-              >
-                more...
-              </button>
+              {currentUser.feedback_summary ? (
+                <>
+                  <p className="text-sm sm:text-right line-clamp-2 text-muted-foreground">
+                    {currentUser.feedback_summary}
+                  </p>
+                  <button
+                    onClick={() => setSummaryDialogOpen(true)}
+                    className="mt-1 text-xs text-primary hover:underline font-medium self-start sm:self-end"
+                  >
+                    more...
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Your summary will appear here once you&apos;ve received feedback.
+                </p>
+              )}
             </div>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -495,7 +503,6 @@ export default function ProfilePage() {
         open={summaryDialogOpen}
         onOpenChange={setSummaryDialogOpen}
         summary={currentUser?.feedback_summary ?? ""}
-        userName={currentUser?.full_name ?? ""}
       />
     </div>
   );

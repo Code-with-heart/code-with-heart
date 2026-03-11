@@ -1,20 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
+import { getModerationService } from './moderation-service.ts';
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
+const MODERATION_PROVIDER = 'gemini';
 
-const SYSTEM_PROMPT = `You are an expert at synthesising professional feedback.
-Your task is to produce a single, cohesive summary of all the feedback a person has received from their colleagues, students, or professors.
+const SYSTEM_PROMPT = `You are an expert at synthesising professional feedback into a short, insightful profile.
+Your task is to produce a concise but substantive summary of all the feedback a person has received from their colleagues, students, or professors.
 
 Guidelines:
-- Write the summary in the same language(s) as the majority of the feedback texts. If feedback is mixed, default to the dominant language.
-- Keep the summary concise: 3–5 sentences.
-- Highlight recurring strengths and, if present, constructive areas for growth.
-- Use a positive, professional tone.
+- Write 1-2 complete sentences. Every sentence must be fully finished — never cut off mid-idea. Maximum of 300 words.
+- Be specific: name the concrete skills, behaviours, or qualities that recur across the feedback (e.g. "clear technical explanations", "proactive problem-solving", "reliable under deadlines").
+- If the feedback mentions areas for growth, include one balanced, constructive sentence about it.
+- Write in the same language(s) as the majority of the feedback. If mixed, default to the dominant language.
+- Use a warm, professional tone — as if written for a LinkedIn recommendation or a performance review.
+- Do NOT include any recommendations or advice. Focus only on summarising the feedback received.
 - Do NOT quote individual messages verbatim.
-- Do NOT include any preamble like "Here is a summary of ...". Start directly with the content.`;
+- Do NOT start with "Here is a summary", "Based on the feedback", or any preamble. Start directly with the person's name or a key strength.`;
 
 serve(async (req) => {
   if (req.method !== "POST") {
@@ -42,7 +45,7 @@ serve(async (req) => {
     });
   }
 
-  console.log(`Generating feedback summary for user ${userId}`);
+  console.log(`Generating feedback summary for user ${userId} using ${MODERATION_PROVIDER}`);
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -75,51 +78,15 @@ serve(async (req) => {
     .map((row, idx) => `[${idx + 1}] ${row.modified_text || row.original_text}`)
     .join("\n\n");
 
-  // Call OpenAI
+  // Generate summary via the configured AI service
   let summary: string;
   try {
-    const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.4,
-        max_tokens: 400,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: `Please summarise the following ${feedbackRows.length} feedback message(s):\n\n${combinedTexts}`,
-          },
-        ],
-      }),
-    });
-
-    if (!openAiRes.ok) {
-      const errBody = await openAiRes.text();
-      console.error("OpenAI error:", openAiRes.status, errBody);
-      return new Response(JSON.stringify({ error: "OpenAI request failed" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const openAiData = await openAiRes.json();
-    summary = openAiData.choices?.[0]?.message?.content?.trim() ?? "";
-
-    if (!summary) {
-      console.error("OpenAI returned an empty summary");
-      return new Response(JSON.stringify({ error: "Empty summary from OpenAI" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const summaryService = await getModerationService(MODERATION_PROVIDER);
+    console.log(`Generating summary with ${summaryService.getName()}`);
+    summary = await summaryService.generateSummary(SYSTEM_PROMPT, combinedTexts, feedbackRows.length);
   } catch (err) {
-    console.error("OpenAI call threw an exception:", err);
-    return new Response(JSON.stringify({ error: "OpenAI call failed" }), {
+    console.error("Summary generation failed:", err);
+    return new Response(JSON.stringify({ error: "Summary generation failed" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
@@ -139,7 +106,7 @@ serve(async (req) => {
     });
   }
 
-  console.log(`Successfully updated feedback_summary for user ${userId}`);
+  console.log(`Successfully updated feedback_summary for user ${userId} with summary: ${summary}`);
   return new Response(JSON.stringify({ success: true, summary }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
