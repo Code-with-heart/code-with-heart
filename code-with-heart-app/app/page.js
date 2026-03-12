@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { MessageSquare } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -153,6 +154,28 @@ export default function HomePage() {
   };
 
   const filteredFeedback = getFilteredFeedback();
+
+  const handleLike = async (feedbackId) => {
+    try {
+      const response = await fetch("/api/feedback/like", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ feedbackId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update like status");
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error liking feedback:", error);
+      return null;
+    }
+  };
 
   return (
     <div className="flex flex-1 flex-col bg-muted/20">
@@ -306,6 +329,31 @@ export default function HomePage() {
                   <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
                     {item.modified_text || item.original_text}
                   </p>
+                  <div className="mt-4 flex items-center gap-2">
+                    <button
+                      disabled={!currentUser}
+                      className="h-6 w-6 flex items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={async () => {
+                        const result = await handleLike(item.id);
+                        if (result) {
+                          setFeedback(feedback.map(fb =>
+                            fb.id === item.id
+                              ? { ...fb, like_count: result.likeCount, userLiked: result.userLiked }
+                              : fb
+                          ));
+                        }
+                      }}
+                    >
+                      <Heart
+                        className={`h-5 w-5 transition-colors ${item.userLiked ? "text-red-500" : "text-gray-400"}`}
+                        fill={item.userLiked ? "currentColor" : "none"}
+                        stroke={item.userLiked ? "none" : "currentColor"}
+                      />
+                    </button>
+                    <span className="text-sm text-gray-500">
+                      {item.like_count || 0} Like{item.like_count === 1 ? "" : "s"}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             ))}
