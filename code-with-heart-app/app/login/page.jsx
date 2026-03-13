@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/utils/supabase/client"
@@ -49,7 +50,7 @@ function isAllowedEmail(email) {
   return ALLOWED_DOMAINS.includes(domain)
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { user, loading: authLoading, signOut, refreshUser } = useAuth()
@@ -417,5 +418,13 @@ export default function LoginPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
   )
 }
