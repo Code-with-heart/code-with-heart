@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getUserFromSession } from "@/utils/supabase/auth";
 import { createClient } from "@/utils/supabase/server";
 
 export async function GET() {
   const supabase = await createClient();
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id ?? null;
+  const { userId } = await getUserFromSession();
   const { data: feedbackData, error: feedbackError } = await supabase
     .from("feedback")
     .select(

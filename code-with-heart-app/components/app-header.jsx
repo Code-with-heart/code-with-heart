@@ -4,7 +4,7 @@ import * as React from "react";
 import { Home, User, Settings, Search, LogOut, FileText, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useAuth } from "@/components/auth-provider";
 import {
   Sidebar,
   SidebarContent,
@@ -45,26 +45,10 @@ const menuItems = [
   },
 ];
 
-function AppSidebar({ user }) {
+function AppSidebar({ user, onSignOut }) {
   const pathname = usePathname();
-  const [fullName, setFullName] = React.useState("");
+  const fullName = user?.full_name || "";
   const [profilePictureUrl, setProfilePictureUrl] = React.useState(null);
-
-  React.useEffect(() => {
-    const fetchFullName = async () => {
-      if (!user?.id) return;
-      const supabase = await createClient();
-      const { data } = await supabase
-        .from("user")
-        .select("full_name")
-        .eq("id", user.id)
-        .single();
-      if (data?.full_name) {
-        setFullName(data.full_name);
-      }
-    };
-    fetchFullName();
-  }, [user?.id]);
 
   React.useEffect(() => {
     const fetchLinkedInPicture = async () => {
@@ -163,7 +147,7 @@ function AppSidebar({ user }) {
                       <span className="truncate font-semibold">
                         {fullName || "Account"}
                       </span>
-                      <span className="truncate text-xs">{user.email || ""}</span>
+                      <span className="truncate text-xs">{user.email || user.authEmail || ""}</span>
                     </div>
                   </div>
                 </SidebarMenuButton>
@@ -171,9 +155,9 @@ function AppSidebar({ user }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   size="md"
-                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  onClick={onSignOut}
                   tooltip="Sign out"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 justify-center"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground justify-center"
                 >
                   <LogOut className="size-4" />
                   <span>Sign out</span>
@@ -228,14 +212,13 @@ function BottomNav() {
   );
 }
 
-export function AppHeader({ children, user }) {
-  const { data: session } = useSession();
-  const resolvedUser = user || session?.user;
+export function AppHeader({ children }) {
+  const { user, signOut } = useAuth();
 
   return (
     <SidebarProvider>
       <div className="hidden md:block">
-        <AppSidebar user={resolvedUser} />
+        <AppSidebar user={user} onSignOut={signOut} />
       </div>
       <SidebarInset>
         <main className="flex flex-1 flex-col pb-16 md:pb-0">
@@ -246,4 +229,3 @@ export function AppHeader({ children, user }) {
     </SidebarProvider>
   );
 }
-

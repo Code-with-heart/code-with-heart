@@ -1,9 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppHeader } from "@/components/app-header";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { AuthSessionProvider } from "@/components/auth-session-provider";
+import { AuthProvider } from "@/components/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -21,18 +19,16 @@ export const metadata = {
   description: "Share and receive constructive feedback within the HTWG community",
 };
 
-export default async function RootLayout({ children }) {
-  const session = await getServerSession(authOptions);
-
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthSessionProvider session={session}>
+        <AuthProvider>
           <AppHeader>{children}</AppHeader>
           <Toaster richColors position="top-right" />
-        </AuthSessionProvider>
+        </AuthProvider>
       </body>
     </html>
   );

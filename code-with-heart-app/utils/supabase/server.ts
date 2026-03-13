@@ -12,7 +12,7 @@ export async function createClient() {
         async getAll() {
           return cookieStore.getAll();
         },
-        async setAll(cookiesToSet) {
+        async setAll(cookiesToSet) { 
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options),

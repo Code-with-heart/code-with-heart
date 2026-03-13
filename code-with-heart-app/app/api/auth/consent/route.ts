@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "../[...nextauth]/route";
-import { createClient } from "../../../../utils/supabase/server";
+import { getUserFromSession } from "@/utils/supabase/auth";
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * POST /api/auth/consent
@@ -12,9 +11,9 @@ import { createClient } from "../../../../utils/supabase/server";
  * If accepted === false → no database changes; client will sign out
  */
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
+  const { authUser, user } = await getUserFromSession();
 
-  if (!session?.user) {
+  if (!authUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -22,23 +21,27 @@ export async function POST(request: Request) {
   const accepted = body?.accepted === true;
 
   if (!accepted) {
-    // User declined – nothing is saved to the database. Client will sign out.
     return NextResponse.json({ accepted: false });
   }
 
-  // User accepted – persist consent
   const supabase = await createClient();
   const now = new Date().toISOString();
-  const pendingProfile = session.user.pendingProfile;
+  const email = authUser.email?.toLowerCase();
+  const fullName =
+    authUser.user_metadata?.full_name ||
+    authUser.user_metadata?.name ||
+    email ||
+    "HTWG User";
 
-  if (pendingProfile) {
-    // New user: create record with consent timestamps in a single write
+  if (!user) {
+    // New user: create record with consent timestamps
     const { error } = await supabase
       .from("user")
       .insert({
-        oidc_sub: pendingProfile.oidcSub,
-        email: pendingProfile.email,
-        full_name: pendingProfile.name,
+        id: authUser.id,
+        oidc_sub: authUser.id,
+        email,
+        full_name: fullName,
         user_type: "Student",
         tos_accepted_at: now,
         data_processing_accepted_at: now,
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
       console.error("Failed to create user on consent:", error);
       return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
     }
-  } else if (session.user.id) {
+  } else {
     // Existing user: update consent timestamps
     const { error } = await supabase
       .from("user")
@@ -56,14 +59,12 @@ export async function POST(request: Request) {
         tos_accepted_at: now,
         data_processing_accepted_at: now,
       })
-      .eq("id", session.user.id);
+      .eq("id", user.id);
 
     if (error) {
       console.error("Failed to save consent timestamps:", error);
       return NextResponse.json({ error: "Failed to save consent" }, { status: 500 });
     }
-  } else {
-    return NextResponse.json({ error: "Invalid session state" }, { status: 400 });
   }
 
   return NextResponse.json({ accepted: true });

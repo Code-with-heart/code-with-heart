@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Globe, Lock, Calendar, Trash2, Search, AlertCircle, Edit3 } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,17 +25,17 @@ export default function ProfilePage() {
   const [feedbackToDelete, setFeedbackToDelete] = React.useState(null);
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [feedbackToEdit, setFeedbackToEdit] = React.useState(null);
-  const { data: session } = useSession();
+  const { user: authUser } = useAuth();
   const [linkedInShareDialogOpen, setLinkedInShareDialogOpen] = React.useState(false);
   const [feedbackToShare, setFeedbackToShare] = React.useState(null);
 
   React.useEffect(() => {
-    if (session?.user?.id) {
+    if (authUser?.id) {
       fetchCurrentUser();
     } else {
       setLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [authUser?.id]);
 
   const fetchCurrentUser = async () => {
     try {

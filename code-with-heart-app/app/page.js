@@ -3,7 +3,7 @@
 import * as React from "react";
 import { MessageSquare } from "lucide-react";
 import { Heart } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/auth-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FeedbackForm } from "@/components/feedback-form";
@@ -17,7 +17,7 @@ export default function HomePage() {
   const [currentUser, setCurrentUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
-  const { data: session } = useSession();
+  const { user: authUser } = useAuth();
 
   React.useEffect(() => {
     fetchFaculties();
@@ -25,13 +25,13 @@ export default function HomePage() {
   }, []);
 
   React.useEffect(() => {
-    if (session?.user?.id) {
+    if (authUser?.id) {
       fetchCurrentUser();
     } else {
       setCurrentUser(null);
       setCurrentUserFaculty(null);
     }
-  }, [session?.user?.id]);
+  }, [authUser?.id]);
 
   const fetchCurrentUser = async () => {
     try {

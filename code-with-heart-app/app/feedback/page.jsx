@@ -1,16 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/components/auth-provider"
 import { FeedbackForm } from "@/components/feedback-form"
 
 export default function Page() {
-  const { data: session } = useSession()
+  const { user: authUser } = useAuth()
   const [currentUser, setCurrentUser] = React.useState(null)
 
   React.useEffect(() => {
     const loadUser = async () => {
-      if (!session?.user?.id) {
+      if (!authUser?.id) {
         setCurrentUser(null)
         return
       }
@@ -24,7 +24,7 @@ export default function Page() {
     }
 
     loadUser()
-  }, [session?.user?.id])
+  }, [authUser?.id])
 
   return (
     <div className="flex flex-1 items-center justify-center p-4 sm:p-8">
@@ -40,5 +40,3 @@ export default function Page() {
     </div>
   );
 }
-
-

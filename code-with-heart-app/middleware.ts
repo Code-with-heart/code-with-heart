@@ -1,27 +1,34 @@
-import withAuth from "next-auth/middleware"
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server";
+import { updateSession } from "@/utils/supabase/middleware";
 
-export default withAuth(
-  function middleware(req) {
-    const token = (req as any).nextauth?.token
-    const isConsentPending = token?.consentPending === true
-    const { pathname } = req.nextUrl
+export async function middleware(request: NextRequest) {
+  const { user, supabaseResponse, supabase } = await updateSession(request);
 
-    // Authenticated user with pending consent: redirect to /login to show consent dialog
-    if (isConsentPending && pathname !== "/login") {
-      return NextResponse.redirect(new URL("/login", req.url))
-    }
-
-    return NextResponse.next()
-  },
-  {
-    pages: {
-      signIn: "/login",
-    },
+  // Not authenticated → redirect to login
+  if (!user) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
-)
 
-// Protect specific routes with the middleware
+  // Check if the user has completed consent (has an app-level user record with consent)
+  const email = user.email?.toLowerCase();
+  if (email) {
+    const { data: appUser } = await supabase
+      .from("user")
+      .select("tos_accepted_at, data_processing_accepted_at")
+      .eq("email", email)
+      .maybeSingle();
+
+    const consentPending =
+      !appUser || !appUser.tos_accepted_at || !appUser.data_processing_accepted_at;
+
+    if (consentPending) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
+
+  return supabaseResponse;
+}
+
 export const config = {
   matcher: ["/profile", "/feedback", "/settings", "/search"],
 };

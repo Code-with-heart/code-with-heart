@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import {  createClient } from "@/utils/supabase/server";
+import { getUserFromSession } from "@/utils/supabase/auth";
+import { createClient } from "@/utils/supabase/server";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
+  const { userId } = await getUserFromSession();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -86,8 +84,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
+  const { userId } = await getUserFromSession();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
