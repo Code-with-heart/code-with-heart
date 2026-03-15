@@ -1,0 +1,34 @@
+@startuml
+left to right direction
+
+package "Client" as client {
+  [Browser\n(React / Next.js)] as browser
+}
+
+package "Vercel (Next.js)" as nextjs {
+  [Frontend] as frontend
+  [API Routes] as api
+}
+
+package "Supabase" as supabase {
+  [Auth\n(session + JWT)] as auth
+  [Edge Functions] as edge
+  database "PostgreSQL" as db
+}
+
+[HTWG OIDC\nProvider] as oidc
+[OpenAI\nModeration API] as openai
+[Email Service\n(Resend / SMTP)] as email
+[LinkedIn API] as linkedin
+
+browser --> frontend : Load UI
+browser --> api : API calls
+api --> auth : validate session
+api --> db : read / write
+api --> edge : trigger
+auth --> oidc : redirect
+oidc --> auth : token
+edge --> openai : content moderation
+edge --> email : send notifications
+api --> linkedin : OAuth + share
+@enduml
