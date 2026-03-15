@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { getUserFromSession } from "@/utils/supabase/auth";
 import { createClient } from "@/utils/supabase/server";
 
 export async function GET() {
   const supabase = await createClient();
+  const { userId } = await getUserFromSession();
   const { data: feedbackData, error: feedbackError } = await supabase
     .from("feedback")
     .select(
@@ -38,10 +40,40 @@ export async function GET() {
     }
   }
 
+  const feedbackIds = (feedbackData || []).map((fb) => fb.id);
+
+  let likeCountMap = new Map<string, number>();
+  let userLikedSet = new Set<string>();
+
+  if (feedbackIds.length > 0) {
+    const { data: likesData } = await supabase
+      .from("feedback_likes")
+      .select("feedback_id")
+      .in("feedback_id", feedbackIds);
+
+    (likesData || []).forEach(({ feedback_id }) => {
+      likeCountMap.set(feedback_id, (likeCountMap.get(feedback_id) ?? 0) + 1);
+    });
+
+    if (userId) {
+      const { data: userLikesData } = await supabase
+        .from("feedback_likes")
+        .select("feedback_id")
+        .in("feedback_id", feedbackIds)
+        .eq("user_id", userId);
+
+      (userLikesData || []).forEach(({ feedback_id }) => {
+        userLikedSet.add(feedback_id);
+      });
+    }
+  }
+
   const data = (feedbackData || []).map((fb) => ({
     ...fb,
     sender: usersMap.get(fb.sender_id) || null,
     recipient: usersMap.get(fb.recipient_id) || null,
+    like_count: likeCountMap.get(fb.id) ?? 0,
+    userLiked: userLikedSet.has(fb.id),
   }));
 
   return NextResponse.json({ data });

@@ -5,6 +5,7 @@ import { Globe, Calendar, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LikeButton } from "@/components/like-button";
 
 export default function SearchPage() {
   const [publishedFeedback, setPublishedFeedback] = React.useState([]);
@@ -274,6 +275,11 @@ export default function SearchPage() {
                     <span>{formatDate(item.published_at || item.created_at)}</span>
                   </div>
                 </div>
+                <LikeButton
+                  feedbackId={item.id}
+                  initialLiked={item.userLiked}
+                  initialCount={item.like_count || 0}
+                />
               </CardContent>
             </Card>
           ))}

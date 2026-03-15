@@ -11,6 +11,7 @@ DROP POLICY IF EXISTS "Recipients can update published status" ON feedback;
 -- Drop ALL triggers that depend on the status column
 DROP TRIGGER IF EXISTS feedback_set_delivered_at ON feedback;
 DROP TRIGGER IF EXISTS update_feedback_updated_at ON feedback;
+DROP TRIGGER IF EXISTS feedback_delivered_notification ON feedback;
 
 -- Drop the default value temporarily
 ALTER TABLE feedback ALTER COLUMN status DROP DEFAULT;

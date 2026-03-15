@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { MessageSquare } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { LikeButton } from "@/components/like-button";
+import { useAuth } from "@/components/auth-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FeedbackForm } from "@/components/feedback-form";
@@ -16,7 +17,8 @@ export default function HomePage() {
   const [currentUser, setCurrentUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
-  const { data: session } = useSession();
+  const { user: authUser } = useAuth();
+
 
   React.useEffect(() => {
     fetchFaculties();
@@ -24,13 +26,13 @@ export default function HomePage() {
   }, []);
 
   React.useEffect(() => {
-    if (session?.user?.id) {
+    if (authUser?.id) {
       fetchCurrentUser();
     } else {
       setCurrentUser(null);
       setCurrentUserFaculty(null);
     }
-  }, [session?.user?.id]);
+  }, [authUser?.id]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -153,6 +155,7 @@ export default function HomePage() {
   };
 
   const filteredFeedback = getFilteredFeedback();
+
 
   return (
     <div className="flex flex-1 flex-col bg-muted/20">
@@ -306,6 +309,14 @@ export default function HomePage() {
                   <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
                     {item.modified_text || item.original_text}
                   </p>
+                  <LikeButton
+                    feedbackId={item.id}
+                    initialLiked={item.userLiked}
+                    initialCount={item.like_count || 0}
+                    onUpdate={(id, data) => setFeedback(prev => prev.map(fb =>
+                      fb.id === id ? { ...fb, ...data } : fb
+                    ))}
+                  />
                 </CardContent>
               </Card>
             ))}
