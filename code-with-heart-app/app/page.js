@@ -18,6 +18,7 @@ export default function HomePage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const { user: authUser } = useAuth();
+  const likingInFlight = React.useRef(new Set());
 
   React.useEffect(() => {
     fetchFaculties();
@@ -334,13 +335,37 @@ export default function HomePage() {
                       disabled={!currentUser}
                       className="h-6 w-6 flex items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={async () => {
-                        const result = await handleLike(item.id);
-                        if (result) {
-                          setFeedback(feedback.map(fb =>
-                            fb.id === item.id
-                              ? { ...fb, like_count: result.likeCount, userLiked: result.userLiked }
-                              : fb
-                          ));
+                        if (likingInFlight.current.has(item.id)) {
+                          return;
+                        }
+                        likingInFlight.current.add(item.id);
+
+                        const prevLiked = item.userLiked;
+                        const prevCount = item.like_count || 0;
+
+                        setFeedback(prev => prev.map(fb =>
+                          fb.id === item.id
+                            ? { ...fb, userLiked: !prevLiked, like_count: prevLiked ? prevCount - 1 : prevCount + 1 }
+                            : fb
+                        ));
+
+                        try {
+                          const result = await handleLike(item.id);
+                          if (result) {
+                            setFeedback(prev => prev.map(fb =>
+                              fb.id === item.id
+                                ? { ...fb, like_count: result.likeCount, userLiked: result.userLiked }
+                                : fb
+                            ));
+                          } else {
+                            setFeedback(prev => prev.map(fb =>
+                              fb.id === item.id
+                                ? { ...fb, userLiked: prevLiked, like_count: prevCount }
+                                : fb
+                            ));
+                          }
+                        } finally {
+                          likingInFlight.current.delete(item.id);
                         }
                       }}
                     >
