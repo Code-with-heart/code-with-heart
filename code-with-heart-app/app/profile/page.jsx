@@ -251,18 +251,18 @@ export default function ProfilePage() {
           {/* AI Feedback Summary teaser */}
           {currentUser && (
             <div className="flex flex-col sm:items-end sm:max-w-xs xl:max-w-sm sm:shrink-0">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">AI Summary</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Summary</p>
               {currentUser.feedback_summary ? (
                 <>
                   <p className="text-sm sm:text-right line-clamp-2 text-muted-foreground">
                     {currentUser.feedback_summary}
                   </p>
-                  <button
+                  <Button
                     onClick={() => setSummaryDialogOpen(true)}
-                    className="mt-1 text-xs text-primary hover:underline font-medium self-start sm:self-end"
+                    variant="link"
                   >
                     more...
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground italic">

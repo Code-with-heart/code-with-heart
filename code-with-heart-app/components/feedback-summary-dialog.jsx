@@ -49,18 +49,11 @@ export function FeedbackSummaryDialog({ open, onOpenChange, summary }) {
           </DialogHeader>
 
           <div className="py-2 space-y-3">
-            <p className="text-sm text-muted-foreground">{INTRO_TEXT}</p>
-            <Textarea
-              value={editedSummary}
-              onChange={(e) => setEditedSummary(e.target.value)}
-              rows={6}
-              className="resize-none text-sm leading-relaxed"
-            />
-            <p className="text-sm text-muted-foreground">{OUTRO_TEXT}</p>
+            {editedSummary}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter>
+            <Button variant="outline" className="mr-1" onClick={() => onOpenChange(false)}>
               Close
             </Button>
             <Button
