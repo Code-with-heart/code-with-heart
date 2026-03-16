@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { UserAvatar } from "@/components/user-avatar";
 import { EditRejectedFeedbackDialog } from "@/components/edit-rejected-feedback-dialog";
 import { LinkedInShareDialog } from "@/components/linkedin-share-dialog";
+import { FeedbackSummaryDialog } from "@/components/feedback-summary-dialog";
 
 export default function ProfilePage() {
   const [currentUser, setCurrentUser] = React.useState(null);
@@ -28,6 +29,7 @@ export default function ProfilePage() {
   const { user: authUser } = useAuth();
   const [linkedInShareDialogOpen, setLinkedInShareDialogOpen] = React.useState(false);
   const [feedbackToShare, setFeedbackToShare] = React.useState(null);
+  const [summaryDialogOpen, setSummaryDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (authUser?.id) {
@@ -231,18 +233,44 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          {currentUser && (
-            <UserAvatar
-              fullName={currentUser.profile?.full_name || currentUser.user_metadata?.full_name || currentUser.email}
-              profilePictureUrl={currentUser.profile?.profile_picture_url}
-              size="large"
-            />
-          )}
-          <div>
-            <h1 className="text-3xl font-bold mb-2">My Profile</h1>
-            <p className="text-muted-foreground">View and manage your feedback</p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+          <div className="flex items-center gap-4">
+            {currentUser && (
+              <UserAvatar
+                fullName={currentUser.profile?.full_name || currentUser.user_metadata?.full_name || currentUser.email}
+                profilePictureUrl={currentUser.profile?.profile_picture_url}
+                size="large"
+              />
+            )}
+            <div>
+              <h1 className="text-3xl font-bold mb-2">My Profile</h1>
+              <p className="text-muted-foreground">View and manage your feedback</p>
+            </div>
           </div>
+
+          {/* AI Feedback Summary teaser */}
+          {currentUser && (
+            <div className="flex flex-col sm:items-end sm:max-w-xs xl:max-w-sm sm:shrink-0">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Summary</p>
+              {currentUser.feedback_summary ? (
+                <>
+                  <p className="text-sm sm:text-right line-clamp-2 text-muted-foreground">
+                    {currentUser.feedback_summary}
+                  </p>
+                  <Button
+                    onClick={() => setSummaryDialogOpen(true)}
+                    variant="link"
+                  >
+                    more...
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Your summary will appear here once you&apos;ve received feedback.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -470,6 +498,12 @@ export default function ProfilePage() {
       />
 
       <LinkedInShareDialog open={linkedInShareDialogOpen} onOpenChange={setLinkedInShareDialogOpen} feedback={feedbackToShare} onShare={handleLinkedInShareComplete} />
+
+      <FeedbackSummaryDialog
+        open={summaryDialogOpen}
+        onOpenChange={setSummaryDialogOpen}
+        summary={currentUser?.feedback_summary ?? ""}
+      />
     </div>
   );
 }

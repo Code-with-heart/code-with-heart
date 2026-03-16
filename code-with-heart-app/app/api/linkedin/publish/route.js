@@ -5,18 +5,21 @@ import { refreshAccessToken, createShare } from '@/utils/linkedin';
 export async function POST(req) {
   try {
     const body = await req.json();
-    const feedbackId = body.feedbackId;
+    const feedbackId = body.feedbackId || null;
     const customText = body.customText || null;
-    if (!feedbackId) return NextResponse.json({ error: 'Missing feedbackId' }, { status: 400 });
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-    // Verify feedback belongs to this recipient
-    const { data: feedback } = await supabase.from('feedback').select('*').eq('id', feedbackId).single();
-    if (!feedback) return NextResponse.json({ error: 'Feedback not found' }, { status: 404 });
-    if (feedback.recipient_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // When a specific feedback item is being shared, verify ownership
+    let feedback = null;
+    if (feedbackId) {
+      const { data: fb } = await supabase.from('feedback').select('*').eq('id', feedbackId).single();
+      if (!fb) return NextResponse.json({ error: 'Feedback not found' }, { status: 404 });
+      if (fb.recipient_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      feedback = fb;
+    }
 
     // Load linkedin account
     const { data: account } = await supabase.from('linkedin_accounts').select('*').eq('user_id', user.id).single();
@@ -53,7 +56,7 @@ export async function POST(req) {
       : `urn:li:person:${account.provider_user_id}`;
     
     console.log('Using author URN:', authorUrn);
-    const text = customText || feedback.modified_text || feedback.original_text || '';
+    const text = customText || (feedback ? (feedback.modified_text || feedback.original_text) : '') || '';
 
     try {
       await createShare(accessToken, authorUrn, text);
