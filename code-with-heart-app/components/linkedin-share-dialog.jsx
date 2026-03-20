@@ -23,27 +23,26 @@ function prettifyFeedbackText(feedback) {
   return `I received feedback from ${role} ${senderName}:\n\n${feedbackText}\n\nThank you for the great feedback!\n\n#htwg #Feedback`;
 }
 
-export function LinkedInShareDialog({ open, onOpenChange, feedback, onShare }) {
+export function LinkedInShareDialog({ open, onOpenChange, feedback, onShare, defaultText }) {
   const [text, setText] = React.useState("");
   const [sharing, setSharing] = React.useState(false);
   const [error, setError] = React.useState("");
 
   React.useEffect(() => {
-    if (open && feedback) {
-      setText(prettifyFeedbackText(feedback));
+    if (open) {
+      setText(defaultText ?? (feedback ? prettifyFeedbackText(feedback) : ""));
       setError("");
     }
-  }, [open, feedback]);
+  }, [open, feedback, defaultText]);
 
   const handleShare = async () => {
-    if (!feedback?.id) return;
     setSharing(true);
     setError("");
     try {
       const res = await fetch("/api/linkedin/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedbackId: feedback.id, customText: text }),
+        body: JSON.stringify({ feedbackId: feedback?.id ?? null, customText: text }),
       });
 
       if (res.status === 402) {
