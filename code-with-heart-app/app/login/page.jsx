@@ -62,8 +62,6 @@ function LoginPageContent() {
   const [formLoading, setFormLoading] = React.useState(false)
   const [formError, setFormError] = React.useState("")
   const [formSuccess, setFormSuccess] = React.useState("")
-  const [isLoadingHtwg, setIsLoadingHtwg] = React.useState(false)
-  const [isLoadingTest, setIsLoadingTest] = React.useState(false)
   const [consentLoading, setConsentLoading] = React.useState(null)
 
   const errorParam = searchParams.get("error")
@@ -136,25 +134,6 @@ function LoginPageContent() {
     }
 
     setFormLoading(false)
-  }
-
-  const handleOidcSignIn = async (provider) => {
-    if (provider === "htwg-oidc") setIsLoadingHtwg(true)
-    if (provider === "htwg-oidc-test") setIsLoadingTest(true)
-
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      setFormError(error.message)
-      setIsLoadingHtwg(false)
-      setIsLoadingTest(false)
-    }
   }
 
   async function handleAccept() {
@@ -281,33 +260,6 @@ function LoginPageContent() {
               )}
             </p>
           </form>
-
-          <div className="relative">
-            <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-              or
-            </span>
-          </div>
-
-          {/* OIDC Provider Buttons */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={isLoadingHtwg}
-            onClick={() => handleOidcSignIn("htwg-oidc")}
-          >
-            {isLoadingHtwg ? "Redirecting..." : "Sign in with HTWG"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={isLoadingTest}
-            onClick={() => handleOidcSignIn("htwg-oidc-test")}
-          >
-            {isLoadingTest ? "Redirecting..." : "Sign in with HTWG (test)"}
-          </Button>
 
           {/* Error / Success Messages */}
           {(formError || errorMessage) && (

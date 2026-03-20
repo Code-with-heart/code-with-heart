@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
 const AuthContext = React.createContext({
@@ -15,6 +16,7 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children, initialUser }) {
+  const router = useRouter();
   const [user, setUser] = React.useState(initialUser ?? null);
   const [loading, setLoading] = React.useState(!initialUser);
 
@@ -68,7 +70,9 @@ export function AuthProvider({ children, initialUser }) {
     const supabase = createClient();
     await supabase.auth.signOut();
     setUser(null);
-  }, []);
+    router.push("/login");
+    router.refresh();
+  }, [router]);
 
   const value = React.useMemo(
     () => ({
